@@ -19,12 +19,15 @@
 #    Hintergrund: - werden wenig benutzt, in der regel nur einmal eingestellt,
 #                  deshalb mit get/set veraendert
 # 
-
+# 6.11.
+# Zufuegen von movement_unit:
+#  - steps, mm, zoll, grad
+# 
 from PyTango.server import run
 from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, device_property
 from PyTango.server import attribute, pipe, command, class_property
-from tango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy
+from tango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
 import tango
 import PyTango
 import time
@@ -65,6 +68,8 @@ class PhytronMcc2(Device):
     __ETX     = chr(3)    # end of text
     __SE      = 'SE'      # Lesen erweiterter Status
 
+    __MOVE_UNIT = ["step" , "mm", "inch", "degree"]
+
 # Konstante fuer &-Verknuepfung des Status
   #  __HOME     = 2     # Ref.pkt wurde angefahren
     __MOVE     = 1     # Motor bewegt sich, dann Bit = 1
@@ -95,8 +100,11 @@ class PhytronMcc2(Device):
     # Firmware > V3.0:  P20 = M0P, P21 = EL0P
     
     __REG_STEP_CNT = 'P20'
+    __REG_UNIT     = 'P2'  # Register Masseinheit der Bewegung
+    __REG_SPINDLE  = 'P3'  # Register Spindelsteigung
     
-    __Pos = 0
+    __Pos  = 0
+    __Unit = 'step'
     
     # Initialisieren des Devices
     def init_device(self):
@@ -130,7 +138,7 @@ class PhytronMcc2(Device):
         self.set_state(PyTango.DevState.ON)
         self.read_my_state()
         self.read_position()
-        self.__Last_Read = 0 
+        
         if flagDebugIO:
             print "Limit-: ",self.__Limit_Minus
             print "Limit+: ",self.__Limit_Plus
@@ -181,7 +189,7 @@ class PhytronMcc2(Device):
     # ------------------
     def read_my_state(self):
         # PROTECTED REGION ID(PhytronMCC.my_state_read) ENABLED START #
-        #if self.__Last_Read == 0:
+        
         answer = self.send_cmd('SE')
     
         if (self.__Axis == 0):
@@ -194,17 +202,13 @@ class PhytronMcc2(Device):
             self.__Motor_Run = not(bool(int(answer[5]) & self.__MOVE))
         if self.__Motor_Run == False:
             self.set_state(PyTango.DevState.ON)
-        #     self.__Last_Read = 1
-        # print "poll Status---------" 
-        # print "Adr: ", self.__Addr
-        # print "Motor: ", self.__Axis
-        # 
-
+       
         return ([self.__Limit_Minus, self.__Limit_Plus, self.__Motor_Run])
                  
         # PROTECTED REGION END #    //  PhytronMCC.my_state_read
 
 
+    
     def read_limit_minus(self):
         # PROTECTED REGION ID(PhytronMCC.limit_minus_read) ENABLED START #
         return self.__Limit_Minus
@@ -253,7 +257,8 @@ class PhytronMcc2(Device):
             answer = self.send_cmd('YA{:.4f}'.format(value))
         self.set_state(PyTango.DevState.MOVING)
         # PROTECTED REGION END #    //  PhytronMCC.position_write
-
+   
+   
     
 
     # -------------
@@ -389,7 +394,30 @@ class PhytronMcc2(Device):
             answer = self.send_cmd('YS')    
         self.__Last_Read = 0     
         # PROTECTED REGION END #    //  PhytronMCC.Stop
-
+    
+    # Set movement unit register R2 
+    @command(dtype_in=str, doc_in="step\nmm\ninch\ndegree",
+            doc_out='the unit')
+    @DebugIt()
+    def set_movement_unit(self, unit):
+        if str.lower(unit) in self.__MOVE_UNIT:
+            self.__Unit = str.lower(unit)
+            a
+        else:
+            PyTango.Except.throw_exception("PhytronMCC.set_movement_unit", "Allowed unit values are step, mm, inch, degree", "set_movement_unit()")
+        
+    
+    
+    # Read movement unit register R2
+    @command(dtype_out = str)
+    def get_movement_unit(self):
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP2R')
+        else:
+            answer = self.send_cmd('YP2R')
+        self.__Unit = self.__MOVE_UNIT[int(answer)-1]
+        return (self.__Unit)
+        
     
 
 if __name__ == "__main__":    
