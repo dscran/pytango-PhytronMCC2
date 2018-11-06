@@ -31,7 +31,7 @@ import time
 import os
 import sys
 
-flagDebugIO = 1
+flagDebugIO = 0
 
 
 class PhytronMcc2(Device): 
@@ -168,9 +168,10 @@ class PhytronMcc2(Device):
     
    
     position = attribute(
-        dtype='int',#polling_period=2000,
+        dtype=float,#polling_period=2000,
+        format='%8.3f',
         access=AttrWriteType.READ_WRITE,
-        label="Move to Position",
+        label="Position",
     )
     
    
@@ -186,13 +187,13 @@ class PhytronMcc2(Device):
         if (self.__Axis == 0):
             self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
             self.__Limit_Plus  = bool(int(answer[2]) & self.__LIM_PLUS)
-            self.__Motor_Run = not(bool(int(answer[1]) & self.__MOVE))
+            self.__Motor_Run = not(bool(int(answer[1]) & self.__MOVE))            
         else:
             self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_MINUS)
             self.__Limit_Plus  = bool(int(answer[6]) & self.__LIM_PLUS)
             self.__Motor_Run = not(bool(int(answer[5]) & self.__MOVE))
-        
-        #if self.__Motor_Run == False:
+        if self.__Motor_Run == False:
+            self.set_state(PyTango.DevState.ON)
         #     self.__Last_Read = 1
         # print "poll Status---------" 
         # print "Adr: ", self.__Addr
@@ -229,10 +230,10 @@ class PhytronMcc2(Device):
         #if (self.__Last_Read == 0):
         if (self.__Axis == 0):
             tmp = self.send_cmd('X' + self.__REG_STEP_CNT +'R')
-            self.__Pos = int(tmp)
+            self.__Pos = float(tmp)
         else:
             tmp = self.send_cmd('Y' + self.__REG_STEP_CNT +'R')
-            self.__Pos = int(tmp)
+            self.__Pos = float(tmp)
         self.read_my_state() 
         # print "poll Pos---------" 
         # print "Adr: ", self.__Addr
@@ -247,9 +248,10 @@ class PhytronMcc2(Device):
         self.__Last_Read = 0    # Zuruecksetzen
         
         if (self.__Axis == 0):
-            answer = self.send_cmd('XA' + str(value))
+            answer = self.send_cmd('XA{:.4f}'.format(value))
         else:
-            answer = self.send_cmd('YA' + str(value))
+            answer = self.send_cmd('YA{:.4f}'.format(value))
+        self.set_state(PyTango.DevState.MOVING)
         # PROTECTED REGION END #    //  PhytronMCC.position_write
 
     
