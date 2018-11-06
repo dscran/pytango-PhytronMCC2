@@ -1,0 +1,72 @@
+1. Erstellen eines Shell-Scriptes zum Starten der Python-Devices
+
+Wir nenen es "device-wrapper.sh".
+
+Funktion:
+--------
+
+- exportieren der Shell-Variable "TANGO_HOST"
+- testen und ggf. warten auf eine erfolgreiches Ping zum Tangohost
+- das PySerialDS-Device starten
+- Testen, ob es laeuft und dann
+- das Achsen-Device (PhytronMcc2) starten
+
+Ausführbar machen:
+$ chmod 777 device-wrapper.sh
+
+
+2. Den Bootprozess anpassen damit die Devices automatisch starten
+
+- Erstellen einer "systemd"-Datei unter "/etc/systemd/system"
+
+Wir nennen sie "tango_dev.service" und sie hat diesen Inhalt:
+
+****
+[Unit]
+Description=starting tango devices
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=forking
+GuessMainPID=no
+ExecStart=/home/pi/Tango_Devices/MCC2/device_wrapper.sh
+WorkingDirectory=/home/pi/Tango_Devices/MCC2
+User=pi
+Restart=on-abort
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+****
+
+$ sudo chmod +x  tango_dev.service
+
+Immer nach dem Aendern eines systemd-Files ausfuehren:
+ 
+$ sudo systemctl daemon-reload 
+$ sudo systemctl start tango_dev.service
+$ ps -edf
+..
+pi        5226     1  2 15:14 ?        00:00:01 /usr/bin/python /home/pi/Tango_Devices/MCC2/PySerialDS.py Lab
+pi        5229     1  2 15:14 ?        00:00:01 /usr/bin/python /home/pi/Tango_Devices/MCC2/PhytronMcc2.py Lab
+..
+
+Ok, die Prozesse laufen!
+
+Und stoppen:
+
+$ sudo systemctl stop tango_dev.service
+$ ps -edf
+..
+..
+Weg sind sie!
+
+Jetzt bootfest machen:
+
+$ sudo systemctl enable tango_dev.service
+Created symlink /etc/systemd/system/multi-user.target.wants/tango_dev.service → /etc/systemd/system/tango_dev.service.
+
+
+

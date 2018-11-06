@@ -1,0 +1,17 @@
+[Unit]
+Description=starting pyserialds
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=forking
+GuessMainPID=no
+ExecStart=/home/pi/Tango_Devices/MCC2/device_wrapper.sh
+WorkingDirectory=/home/pi/Tango_Devices/MCC2
+User=pi
+Restart=on-abort
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
