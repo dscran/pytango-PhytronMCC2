@@ -69,7 +69,8 @@ class PhytronMcc2(Device):
     __SE      = 'SE'      # Lesen erweiterter Status
 
     __MOVE_UNIT = ["step" , "mm", "inch", "degree"]
-
+    __SPINDLE   = 1.0
+    
 # Konstante fuer &-Verknuepfung des Status
   #  __HOME     = 2     # Ref.pkt wurde angefahren
     __MOVE     = 1     # Motor bewegt sich, dann Bit = 1
@@ -80,7 +81,7 @@ class PhytronMcc2(Device):
     __Limit_Minus = False
     __Limit_Plus  = False
     __Motor_Run   = False
-    #__Ref         = False
+    
 
 # private Flag-Variable die das letzte Abfragen der Achse durch den Client anzeigt    
     __Last_Read = 0 
@@ -144,6 +145,8 @@ class PhytronMcc2(Device):
             print "Limit+: ",self.__Limit_Plus
             print "Run: ",self.__Motor_Run
             print "Postion: ", self.__Pos
+        
+        #UserDefaultAttrProp.set_display_unit(self.position,"E")
         
     def delete_device(self):
         # PROTECTED REGION ID(PhytronMCC.delete_device) ENABLED START #
@@ -402,7 +405,10 @@ class PhytronMcc2(Device):
     def set_movement_unit(self, unit):
         if str.lower(unit) in self.__MOVE_UNIT:
             self.__Unit = str.lower(unit)
-            a
+            if (self.__Axis == 0):
+                answer = self.send_cmd('XP2S' + self.__Unit)
+            else:
+                answer = self.send_cmd('YP2S' + self.__Unit)
         else:
             PyTango.Except.throw_exception("PhytronMCC.set_movement_unit", "Allowed unit values are step, mm, inch, degree", "set_movement_unit()")
         
@@ -416,7 +422,30 @@ class PhytronMcc2(Device):
         else:
             answer = self.send_cmd('YP2R')
         self.__Unit = self.__MOVE_UNIT[int(answer)-1]
+        #UserDefaultAttrProp.set_display_unit(position)='test'
         return (self.__Unit)
+   
+    # Set spindle_pitch R3
+    @command(dtype_in=float, doc_in="spindle pitch (see manual page 50)",
+            doc_out='the unit')
+    @DebugIt()
+    def set_spindle_pitch(self, pitch):
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP3S' + str(pitch))
+        else:
+            answer = self.send_cmd('YP3S' + str(pitch))
+        
+        
+    
+    
+    # Read spindle_pitch R3
+    @command(dtype_out = str)
+    def get_spindle_pitch(self):
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP3R')
+        else:
+            answer = self.send_cmd('YP3R')
+        return float(answer)
         
     
 
