@@ -22,6 +22,9 @@
 # 6.11.
 # Zufuegen von movement_unit:
 #  - steps, mm, zoll, grad
+# Zufuegen von spindle_pitch
+#  - Spindelsteigung siehe Handbuch Seite 50
+# Attribute "my_state" in Command geaendert und in "mcc_state"
 # 
 from PyTango.server import run
 from PyTango import DebugIt
@@ -68,7 +71,7 @@ class PhytronMcc2(Device):
     __ETX     = chr(3)    # end of text
     __SE      = 'SE'      # Lesen erweiterter Status
 
-    __MOVE_UNIT = ["step" , "mm", "inch", "degree"]
+    __MOVE_UNIT = ("step" , "mm", "inch", "degree")
     __SPINDLE   = 1.0
     
 # Konstante fuer &-Verknuepfung des Status
@@ -107,6 +110,8 @@ class PhytronMcc2(Device):
     __Pos  = 0
     __Unit = 'step'
     
+    __I = 0
+    
     # Initialisieren des Devices
     def init_device(self):
         Device.init_device(self)
@@ -137,8 +142,11 @@ class PhytronMcc2(Device):
         
             
         self.set_state(PyTango.DevState.ON)
-        self.read_my_state()
+        
+        # Read parameters from Hardware-Device 
+        self.get_mcc_state()
         self.read_position()
+        self.get_spindle_pitch()
         
         if flagDebugIO:
             print "Limit-: ",self.__Limit_Minus
@@ -158,10 +166,7 @@ class PhytronMcc2(Device):
     # Attributes
     # ----------
 
-    my_state = attribute(
-        dtype=('bool',),#polling_period=500,
-        max_dim_x=3,
-    )
+   
   
     limit_minus = attribute(
         dtype='bool',
@@ -190,25 +195,8 @@ class PhytronMcc2(Device):
     # ------------------
     # Attributes methods
     # ------------------
-    def read_my_state(self):
-        # PROTECTED REGION ID(PhytronMCC.my_state_read) ENABLED START #
-        
-        answer = self.send_cmd('SE')
     
-        if (self.__Axis == 0):
-            self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
-            self.__Limit_Plus  = bool(int(answer[2]) & self.__LIM_PLUS)
-            self.__Motor_Run = not(bool(int(answer[1]) & self.__MOVE))            
-        else:
-            self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_MINUS)
-            self.__Limit_Plus  = bool(int(answer[6]) & self.__LIM_PLUS)
-            self.__Motor_Run = not(bool(int(answer[5]) & self.__MOVE))
-        if self.__Motor_Run == False:
-            self.set_state(PyTango.DevState.ON)
-       
-        return ([self.__Limit_Minus, self.__Limit_Plus, self.__Motor_Run])
-                 
-        # PROTECTED REGION END #    //  PhytronMCC.my_state_read
+        
 
 
     
@@ -227,44 +215,27 @@ class PhytronMcc2(Device):
         return self.__Motor_Run
         # PROTECTED REGION END #    //  PhytronMCC.run_read
 
-    def read_ref(self):
-        # PROTECTED REGION ID(PhytronMCC.run_read) ENABLED START #
-        return self.__Ref
-        # PROTECTED REGION END #    //  PhytronMCC.run_read
-
     def read_position(self):
         # PROTECTED REGION ID(PhytronMCC.position_read) ENABLED START #
-        #if (self.__Last_Read == 0):
-        if (self.__Axis == 0):
-            tmp = self.send_cmd('X' + self.__REG_STEP_CNT +'R')
-            self.__Pos = float(tmp)
-        else:
-            tmp = self.send_cmd('Y' + self.__REG_STEP_CNT +'R')
-            self.__Pos = float(tmp)
-        self.read_my_state() 
-        # print "poll Pos---------" 
-        # print "Adr: ", self.__Addr
-        # print "Motor: ", self.__Axis
-        return (self.__Pos)
-            
-        # PROTECTED REGION END #    //  PhytronMCC.position_read
+        return (self.__Pos)         
+         # PROTECTED REGION END #    //  PhytronMCC.position_read
 
     def write_position(self, value):
         # PROTECTED REGION ID(PhytronMCC.position_write) ENABLED START #
-        
-        self.__Last_Read = 0    # Zuruecksetzen
         
         if (self.__Axis == 0):
             answer = self.send_cmd('XA{:.4f}'.format(value))
         else:
             answer = self.send_cmd('YA{:.4f}'.format(value))
-        self.set_state(PyTango.DevState.MOVING)
+        if answer <> self.__NACK:
+            self.set_state(PyTango.DevState.MOVING)
+            self.__Motor_Run = True
+            
         # PROTECTED REGION END #    //  PhytronMCC.position_write
    
    
     
-
-    # -------------
+# -------------
     # Pipes methods
     # -------------
 
@@ -278,17 +249,12 @@ class PhytronMcc2(Device):
     def send_cmd(self,cmd):
         # den String zum Senden zusammen bauen
         s = self.__STX + str(self.__Addr) + cmd  + self.__ETX
-        # senden
-        # self.ctrl.Write(s)
-        temp=self.ctrl.WriteRead(s)
+        temp = self.ctrl.WriteRead(s)
         answer = temp.tostring()
         if self.__ACK in answer:
             tmp =  answer.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)   
         else:
-            tmp = "Command error!"
-        # 50ms Warten
-        #time.sleep(0.05)
-        #tmp= self.read_cmd()
+            tmp = self.__NACK
         return (tmp)
         
         
@@ -299,8 +265,41 @@ class PhytronMcc2(Device):
         if self.__ACK in answer:
             tmp =  answer.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)   
         else:
-            tmp = "Command error!"
+            tmp = self.__NACK
         return (tmp)
+    
+    @command(dtype_out=float, doc_out='position')    
+    def get_pos(self):
+        if (self.__Axis == 0):
+            tmp = self.send_cmd('X' + self.__REG_STEP_CNT +'R')
+        else:
+            tmp = self.send_cmd('Y' + self.__REG_STEP_CNT +'R')
+        self.__Pos = float(tmp)
+        return (self.__Pos)
+        
+        
+    @command(polling_period=200, doc_out='state of limits and moving' )   
+    def get_mcc_state(self):
+        # PROTECTED REGION ID(PhytronMCC.get_mcc_state) ENABLED START #
+        self.get_pos()
+        answer = self.send_cmd('SE')
+    
+        if (self.__Axis == 0):
+            self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
+            self.__Limit_Plus  = bool(int(answer[2]) & self.__LIM_PLUS)
+            self.__Motor_Run = not(bool(int(answer[1]) & self.__MOVE))            
+        else:
+            self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_MINUS)
+            self.__Limit_Plus  = bool(int(answer[6]) & self.__LIM_PLUS)
+            self.__Motor_Run = not(bool(int(answer[5]) & self.__MOVE))
+        if self.__Motor_Run == False:
+            self.set_state(PyTango.DevState.ON)
+       
+        # return ([self.__Limit_Minus, self.__Limit_Plus, self.__Motor_Run])
+                 
+        # PROTECTED REGION END #    //  PhytronMCC..get_mcc_state
+        
+        
     
     @command(dtype_out=int, doc_out='get acceleration')  
     def get_accel(self):
@@ -384,7 +383,13 @@ class PhytronMcc2(Device):
         else:
             answer = self.send_cmd('Y0-')
         # PROTECTED REGION END #    //  PhytronMCC.Homing_Minus
-
+    
+    @command(dtype_out=int, polling_period= 1000)
+    @DebugIt()
+    def Test(self):
+        self.__I += 1
+        return self.__I
+    
     
     @command
     @DebugIt()
@@ -439,7 +444,7 @@ class PhytronMcc2(Device):
     
     
     # Read spindle_pitch R3
-    @command(dtype_out = str)
+    @command(dtype_out = float)
     def get_spindle_pitch(self):
         if (self.__Axis == 0):
             answer = self.send_cmd('XP3R')
