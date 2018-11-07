@@ -31,11 +31,11 @@ from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, device_property
 from PyTango.server import attribute, pipe, command, class_property
 from tango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
-import tango
+#import tango
 import PyTango
-import time
-import os
-import sys
+#import time
+#import os
+#import sys
 
 flagDebugIO = 0
 
@@ -73,6 +73,7 @@ class PhytronMcc2(Device):
 
     __MOVE_UNIT = ("step" , "mm", "inch", "degree")
     __SPINDLE   = 1.0
+    __DISPLAY_UNIT = ("steps" , "mm", "inch", "degree")
     
 # Konstante fuer &-Verknuepfung des Status
   #  __HOME     = 2     # Ref.pkt wurde angefahren
@@ -147,6 +148,7 @@ class PhytronMcc2(Device):
         self.get_mcc_state()
         self.read_position()
         self.get_spindle_pitch()
+        #self.read_attribute('position')
         
         if flagDebugIO:
             print "Limit-: ",self.__Limit_Minus
@@ -188,6 +190,7 @@ class PhytronMcc2(Device):
         format='%8.3f',
         access=AttrWriteType.READ_WRITE,
         label="Position",
+        unit ="steps"
     )
     
    
@@ -268,14 +271,14 @@ class PhytronMcc2(Device):
             tmp = self.__NACK
         return (tmp)
     
-    @command(dtype_out=float, doc_out='position')    
+    @command(dtype_out=None , doc_out='position')    
     def get_pos(self):
         if (self.__Axis == 0):
             tmp = self.send_cmd('X' + self.__REG_STEP_CNT +'R')
         else:
             tmp = self.send_cmd('Y' + self.__REG_STEP_CNT +'R')
         self.__Pos = float(tmp)
-        return (self.__Pos)
+        #return (self.__Pos)
         
         
     @command(polling_period=200, doc_out='state of limits and moving' )   
@@ -384,13 +387,6 @@ class PhytronMcc2(Device):
             answer = self.send_cmd('Y0-')
         # PROTECTED REGION END #    //  PhytronMCC.Homing_Minus
     
-    @command(dtype_out=int, polling_period= 1000)
-    @DebugIt()
-    def Test(self):
-        self.__I += 1
-        return self.__I
-    
-    
     @command
     @DebugIt()
     def Stop(self):
@@ -410,10 +406,11 @@ class PhytronMcc2(Device):
     def set_movement_unit(self, unit):
         if str.lower(unit) in self.__MOVE_UNIT:
             self.__Unit = str.lower(unit)
+            tmp =  self.__MOVE_UNIT.index(self.__Unit) + 1
             if (self.__Axis == 0):
-                answer = self.send_cmd('XP2S' + self.__Unit)
+                answer = self.send_cmd('XP2S' + str(tmp))
             else:
-                answer = self.send_cmd('YP2S' + self.__Unit)
+                answer = self.send_cmd('YP2S' + str(tmp))
         else:
             PyTango.Except.throw_exception("PhytronMCC.set_movement_unit", "Allowed unit values are step, mm, inch, degree", "set_movement_unit()")
         
