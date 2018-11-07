@@ -31,9 +31,9 @@ from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, device_property
 from PyTango.server import attribute, pipe, command, class_property
 from PyTango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
+import PyTango
 #from tango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
 #import tango
-import PyTango
 #import time
 #import os
 #import sys
@@ -75,6 +75,7 @@ class PhytronMcc2(Device):
 
     __MOVE_UNIT = ("step" , "mm", "inch", "degree")
     __SPINDLE   = 1.0
+    __DISPL_UNIT= ("steps" , "mm", "inch", "degree")
     
 # Konstante fuer &-Verknuepfung des Status
   #  __HOME     = 2     # Ref.pkt wurde angefahren
@@ -118,14 +119,12 @@ class PhytronMcc2(Device):
     def init_device(self):
         Device.init_device(self)
         
-        self.proxy = PyTango.DeviceProxy(self.get_name())
+        self.proxy = DeviceProxy(self.get_name())
         
         # wir wollen spaeter die angezeigte Unit vom Attribut 'position'aendern
-        pos_attr = self.get_attribute_config('position')
         
-        print (pos_attr)
-        #pos_attr.label = "position"
-        #set_attribute_config(pos_attr)
+        self.attrib = self.get_attribute_config_3('position')[0]
+
         
         if flagDebugIO:
             print("Get_name: %s" % (self.get_name()))
@@ -156,7 +155,9 @@ class PhytronMcc2(Device):
         self.get_mcc_state()
         self.read_position()
         self.get_spindle_pitch()
-
+        self.get_movement_unit()
+        self.set_display_unit()
+        
         if flagDebugIO:
             print "Limit-: ",self.__Limit_Minus
             print "Limit+: ",self.__Limit_Plus
@@ -170,6 +171,13 @@ class PhytronMcc2(Device):
         self.set_state(PyTango.DevState.OFF)
         # PROTECTED REGION END #    //  PhytronMCC.delete_device
         
+    def set_display_unit(self):
+        self.attrib.unit= self.__Unit
+        if self.__Unit == "step":
+            self.attrib.format = '%8d'
+        else:
+            self.attrib.format = '%8.3f'
+        self.set_attribute_config_3(self.attrib)
         
     # ----------
     # Attributes
@@ -418,13 +426,10 @@ class PhytronMcc2(Device):
             if (self.__Axis == 0):
                 answer = self.send_cmd('XP2S' + str(tmp))
                 self.info_stream("In %s::set_unit()" % self.get_movement_unit())
-                # self.pos_attr.unit = self.__Unit
-                # self.set_attribute_config(pos_attr)
                 self.get_movement_unit()
             else:
                 answer = self.send_cmd('YP2S' + str(tmp))
-                self.get_movement_unit()
-                
+                self.get_movement_unit()             
         else:
             PyTango.Except.throw_exception("PhytronMCC.set_movement_unit", "Allowed unit values are step, mm, inch, degree", "set_movement_unit()")
         
@@ -438,7 +443,7 @@ class PhytronMcc2(Device):
         else:
             answer = self.send_cmd('YP2R')
         self.__Unit = self.__MOVE_UNIT[int(answer)-1]
-        #UserDefaultAttrProp.set_display_unit(position)='test'
+        self.set_display_unit()
         return (self.__Unit)
    
     # Set spindle_pitch R3
