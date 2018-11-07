@@ -31,11 +31,13 @@ from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, device_property
 from PyTango.server import attribute, pipe, command, class_property
 from PyTango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
+#from tango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
+#import tango
 import PyTango
-import time
-import os
-import sys
-import tango
+#import time
+#import os
+#import sys
+
 
 flagDebugIO = 0
 
@@ -73,7 +75,6 @@ class PhytronMcc2(Device):
 
     __MOVE_UNIT = ("step" , "mm", "inch", "degree")
     __SPINDLE   = 1.0
-    __DISPLAY_UNIT = ("steps" , "mm", "inch", "degree")
     
 # Konstante fuer &-Verknuepfung des Status
   #  __HOME     = 2     # Ref.pkt wurde angefahren
@@ -120,10 +121,11 @@ class PhytronMcc2(Device):
         self.proxy = PyTango.DeviceProxy(self.get_name())
         
         # wir wollen spaeter die angezeigte Unit vom Attribut 'position'aendern
-        pos_attr = self.proxy.get_attribute_config('position')
+        pos_attr = self.get_attribute_config('position')
         
-        #print (pos_attr)
-        #self.set_attribute_config(pos_attr)
+        print (pos_attr)
+        #pos_attr.label = "position"
+        #set_attribute_config(pos_attr)
         
         if flagDebugIO:
             print("Get_name: %s" % (self.get_name()))
@@ -154,8 +156,7 @@ class PhytronMcc2(Device):
         self.get_mcc_state()
         self.read_position()
         self.get_spindle_pitch()
-        #PyTango.UserDefaultAttrProp.set_display_unit('position','test')
-        
+
         if flagDebugIO:
             print "Limit-: ",self.__Limit_Minus
             print "Limit+: ",self.__Limit_Plus
@@ -195,8 +196,8 @@ class PhytronMcc2(Device):
         dtype=float,#polling_period=2000,
         format='%8.3f',
         access=AttrWriteType.READ_WRITE,
-        label="Position",
-        unit ="steps"
+        label="position",
+        unit='steps'
     )
     
    
@@ -277,14 +278,14 @@ class PhytronMcc2(Device):
             tmp = self.__NACK
         return (tmp)
     
-    @command(dtype_out=None , doc_out='position')    
+    @command(dtype_out=float, doc_out='position')    
     def get_pos(self):
         if (self.__Axis == 0):
             tmp = self.send_cmd('X' + self.__REG_STEP_CNT +'R')
         else:
             tmp = self.send_cmd('Y' + self.__REG_STEP_CNT +'R')
         self.__Pos = float(tmp)
-        #return (self.__Pos)
+        return (self.__Pos)
         
         
     @command(polling_period=200, doc_out='state of limits and moving' )   
@@ -393,6 +394,7 @@ class PhytronMcc2(Device):
             answer = self.send_cmd('Y0-')
         # PROTECTED REGION END #    //  PhytronMCC.Homing_Minus
     
+    
     @command
     @DebugIt()
     def Stop(self):
@@ -412,13 +414,17 @@ class PhytronMcc2(Device):
     def set_movement_unit(self, unit):
         if str.lower(unit) in self.__MOVE_UNIT:
             self.__Unit = str.lower(unit)
-            tmp =  self.__MOVE_UNIT.index(self.__Unit) + 1
+            tmp = self.__MOVE_UNIT.index(self.__Unit) + 1
             if (self.__Axis == 0):
                 answer = self.send_cmd('XP2S' + str(tmp))
-                get_movement_unit()
+                self.info_stream("In %s::set_unit()" % self.get_movement_unit())
+                # self.pos_attr.unit = self.__Unit
+                # self.set_attribute_config(pos_attr)
+                self.get_movement_unit()
             else:
                 answer = self.send_cmd('YP2S' + str(tmp))
-                get_movement_unit()
+                self.get_movement_unit()
+                
         else:
             PyTango.Except.throw_exception("PhytronMCC.set_movement_unit", "Allowed unit values are step, mm, inch, degree", "set_movement_unit()")
         
