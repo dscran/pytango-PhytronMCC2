@@ -30,12 +30,12 @@ from PyTango.server import run
 from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, device_property
 from PyTango.server import attribute, pipe, command, class_property
-from tango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
-#import tango
+from PyTango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
 import PyTango
-#import time
-#import os
-#import sys
+import time
+import os
+import sys
+import tango
 
 flagDebugIO = 0
 
@@ -119,6 +119,12 @@ class PhytronMcc2(Device):
         
         self.proxy = PyTango.DeviceProxy(self.get_name())
         
+        # wir wollen spaeter die angezeigte Unit vom Attribut 'position'aendern
+        pos_attr = self.proxy.get_attribute_config('position')
+        
+        #print (pos_attr)
+        #self.set_attribute_config(pos_attr)
+        
         if flagDebugIO:
             print("Get_name: %s" % (self.get_name()))
         
@@ -148,7 +154,7 @@ class PhytronMcc2(Device):
         self.get_mcc_state()
         self.read_position()
         self.get_spindle_pitch()
-        #self.read_attribute('position')
+        #PyTango.UserDefaultAttrProp.set_display_unit('position','test')
         
         if flagDebugIO:
             print "Limit-: ",self.__Limit_Minus
@@ -409,8 +415,10 @@ class PhytronMcc2(Device):
             tmp =  self.__MOVE_UNIT.index(self.__Unit) + 1
             if (self.__Axis == 0):
                 answer = self.send_cmd('XP2S' + str(tmp))
+                get_movement_unit()
             else:
                 answer = self.send_cmd('YP2S' + str(tmp))
+                get_movement_unit()
         else:
             PyTango.Except.throw_exception("PhytronMCC.set_movement_unit", "Allowed unit values are step, mm, inch, degree", "set_movement_unit()")
         
