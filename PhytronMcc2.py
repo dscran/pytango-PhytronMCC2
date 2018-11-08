@@ -468,7 +468,7 @@ class PhytronMcc2(Device):
             answer = self.send_cmd('YP3S' + str(pitch))
         self.__Pitch =  self.get_spindle_pitch()
         self.set_display_unit()
-        
+        return(self.__Pitch )
         
     
     
