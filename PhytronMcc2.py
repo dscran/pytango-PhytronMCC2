@@ -102,18 +102,15 @@ class PhytronMcc2(Device):
         
         self.proxy = DeviceProxy(self.get_name())
         
-        # wir wollen spaeter die angezeigte Unit vom Attribut 'position'aendern
-        
-        self.attrib = self.get_attribute_config_3('position')[0]
-
-        
         if flagDebugIO:
             print("Get_name: %s" % (self.get_name()))
         
+        # get the properties of the attribute "position" from the database
+        self.attrib = self.get_attribute_config_3('position')[0]
+
         self.__Addr = self.Address
         self.__Axis = self.Motor
 
-        
         if flagDebugIO:
             print "Ctrl.Device:  %s" %( self.CtrlDevice)
             print "Modul Adresse: ",self.__Addr
@@ -129,10 +126,12 @@ class PhytronMcc2(Device):
         if str(self.ctrl.state()) == "OFF":
             self.ctrl.Open()
         
-            
+          
         self.set_state(PyTango.DevState.ON)
         
         # read parameters from Hardware-Device MCC2
+        #if self.read_firmware_version 
+        
         self.get_mcc_state()
         self.read_position()
         self.get_spindle_pitch()
@@ -241,8 +240,8 @@ class PhytronMcc2(Device):
     # Commands
     # --------
 
-    # begin part of communication  
-    # --------------------------------  
+    # communication  (write/read)
+    # ------------- ------------- 
     @command(dtype_in=str, dtype_out=str, doc_in='enter a command', doc_out='the answer')    
     def send_cmd(self,cmd):
         # building the string to send it 
@@ -254,19 +253,16 @@ class PhytronMcc2(Device):
         else:
             tmp = self.__NACK
         return (tmp)
+    
+
+    # read firmwareversion of device MCC2
+    # ------------------------------------    
+    @command(dtype_out=str, doc_out='the version of firmware')    
+    def read_firmware_version(self):
+        version = self.send_cmd('IAR')
+        return (version)
         
         
-    @command(dtype_out=str, doc_out='the answer')    
-    def read_cmd(self):
-        tmp= self.ctrl.Read(1024)
-        answer = tmp.tostring()
-        if self.__ACK in answer:
-            tmp =  answer.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)   
-        else:
-            tmp = self.__NACK
-        return (tmp)
-    # end part of communication 
-    # --------------------------
     
     # read the actual position
     # ------------------------
