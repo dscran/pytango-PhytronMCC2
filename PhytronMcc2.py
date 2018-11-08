@@ -1,42 +1,39 @@
 #!/usr/bin/python -u
 # coding: utf8
 # Phytron MotorDevice
-# 17.10. 1. Test im Lab, Festlegung von Verbesserungen/Aenderungen
-# Aenderungen:
+# 17.10. 1. first test in the Lab, Definition of improvements/changes
+# Changes:
 # ------------
 # 18.10. 
-# Die Module werden noch einmal nach Achsen unterteilt
-# Beschreibung:
+# modules are still subdivided according to axes
+# Changes:
 # -------------
 # Device: hhg/MCC2/0.0
-# Bedeutung: 1. Ziffer ist die Moduladresse auf dem Bus
-#            2. Ziffer der Motor
-# In dem Fall: Rs485-Adresse=0 (Modul 1), Motor: 0 (oberer Stecker)
-# oder  Device: hhg/MCC2/1.1 entspricht: Modul 2, Motor 1 (unterer Stecker)
+# means: first number is the address of the module 
+#        second number is the number of motor
+# in this example: Rs485-address = 0, motor: 0 (upper plug)
+# or  device: hhg/MCC2/1.1 means: module 2, motor 1 (lower plug)
 #                 
 # 19.10.
-# 1) Acceleration und max. Frequenz werden als Kommando implementiert
-#    Hintergrund: - werden wenig benutzt, in der regel nur einmal eingestellt,
-#                  deshalb mit get/set veraendert
+# acceleration and max. frequenz are implemantet as commands
 # 
 # 6.11.
-# Zufuegen von movement_unit:
-#  - steps, mm, zoll, grad
-# Zufuegen von spindle_pitch
-#  - Spindelsteigung siehe Handbuch Seite 50
-# Attribute "my_state" in Command geaendert und in "mcc_state"
+# added movement_unit:
+#  - steps, mm, zoll, degree
+# added spindle_pitch
+#  - pitch of spindle (Spindelsteigung siehe Handbuch Seite 50)
+# changing attribute "my_state" in command and the name from "my_state" to "mcc_state"
 # 
+# 8.11.
+# added set_display_unit
+
 from PyTango.server import run
 from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, device_property
 from PyTango.server import attribute, pipe, command, class_property
 from PyTango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
 import PyTango
-#from tango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
-#import tango
-#import time
-#import os
-#import sys
+import sys
 
 
 flagDebugIO = 0
@@ -45,9 +42,9 @@ flagDebugIO = 0
 class PhytronMcc2(Device): 
     __metaclass__ = DeviceMeta
 
-    # Auslesen des Control-Device aus der Property-Liste
-    # Auslesen der Achse 0/1 (ein Modul kann 2 Motore steuern)
-    # Auslesen welche Adresse das Modul hat (0..15)
+    # read the name of the CtrlDevice from the properties
+    # read number of axise 0 or 1 ( one Module can control two motors)
+    # read the address of the module (0..15)
     
     # -----------------
     # Device Properties
@@ -65,57 +62,41 @@ class PhytronMcc2(Device):
         dtype='int16'
     )
      
-# Definition einiger Konstanten
+# definition some constants
  
     __STX     = chr(2)    # Start of text
     __ACK     = chr(6)    # Command ok
     __NACK    = chr(0x15) # command failed
     __ETX     = chr(3)    # end of text
-    __SE      = 'SE'      # Lesen erweiterter Status
-
+    __SE      = 'SE'      # command for reading extended status
+    
+    __REG_STEP_CNT = 'P20'
+    __REG_UNIT     = 'P2'  # Register unit of movement
+    __REG_SPINDLE  = 'P3'  # Register of spindle pitch (Spindelsteigung)
+    
     __MOVE_UNIT = ("step" , "mm", "inch", "degree")
     __SPINDLE   = 1.0
     __DISPL_UNIT= ("steps" , "mm", "inch", "degree")
     
-# Konstante fuer &-Verknuepfung des Status
-  #  __HOME     = 2     # Ref.pkt wurde angefahren
-    __MOVE     = 1     # Motor bewegt sich, dann Bit = 1
+    
+    __MOVE      = 1     
     __LIM_PLUS  = 2
     __LIM_MINUS = 1
 
-# private Status-Variablen, werden von My_State aktualisiert    
+# private status variables, are are updated by "mcc_state()"
     __Limit_Minus = False
     __Limit_Plus  = False
     __Motor_Run   = False
     
 
-# private Flag-Variable die das letzte Abfragen der Achse durch den Client anzeigt    
-    __Last_Read = 0 
-
-# Private Variable zum Speichern der Position
-     
-    # Zuweisen des Wertes von Property "Address" (RS485 Adresse des Moduls)
+# other private variables
     __Addr          = 0
-    
-    # Zuweisen des Wertes von Property "Motor" (welche Achse)
     __Axis          = 0
-    
-    # ab Firmware V3.0 haben sich 2 Register geaendert
-    # M0P   = mechan. Nullpunktzaehler, wird beim Homming (X0+/-) auf Null gesetzt
-    # EL0P  = el. Nullpunktzaehler, wird nicht automatisch auf Null gesetzt
-    # Firmware < V3.0:  P21 = MOP, P20 = EL0P
-    # Firmware > V3.0:  P20 = M0P, P21 = EL0P
-    
-    __REG_STEP_CNT = 'P20'
-    __REG_UNIT     = 'P2'  # Register Masseinheit der Bewegung
-    __REG_SPINDLE  = 'P3'  # Register Spindelsteigung
-    
     __Pos  = 0
     __Unit = 'step'
-    
     __I = 0
     
-    # Initialisieren des Devices
+    # Initializing the Device
     def init_device(self):
         Device.init_device(self)
         
@@ -144,14 +125,14 @@ class PhytronMcc2(Device):
             print "PhytronMcc2.init_device: failed to create proxy to %s" % (self.CtrlDevice)
             sys.exit( 255)
         
-        # Testen ob das CtrlDevice ON ist und wenn nicht ser. Schnittstelle oeffnen
+        # check if the CrlDevice ON, if not open the serial port
         if str(self.ctrl.state()) == "OFF":
             self.ctrl.Open()
         
             
         self.set_state(PyTango.DevState.ON)
         
-        # Read parameters from Hardware-Device 
+        # read parameters from Hardware-Device MCC2
         self.get_mcc_state()
         self.read_position()
         self.get_spindle_pitch()
@@ -164,21 +145,22 @@ class PhytronMcc2(Device):
             print "Run: ",self.__Motor_Run
             print "Postion: ", self.__Pos
         
-        #UserDefaultAttrProp.set_display_unit(self.position,"E")
         
     def delete_device(self):
         # PROTECTED REGION ID(PhytronMCC.delete_device) ENABLED START #
         self.set_state(PyTango.DevState.OFF)
         # PROTECTED REGION END #    //  PhytronMCC.delete_device
+    
         
     def set_display_unit(self):
         self.attrib.unit= self.__Unit
-        if self.__Unit == "step":
+        if self.__SPINDLE == 1:
             self.attrib.format = '%8d'
         else:
             self.attrib.format = '%8.3f'
+        # write properties in the database
         self.set_attribute_config_3(self.attrib)
-        
+       
     # ----------
     # Attributes
     # ----------
@@ -201,7 +183,7 @@ class PhytronMcc2(Device):
     
    
     position = attribute(
-        dtype=float,#polling_period=2000,
+        dtype=float,
         format='%8.3f',
         access=AttrWriteType.READ_WRITE,
         label="position",
@@ -214,9 +196,6 @@ class PhytronMcc2(Device):
     # Attributes methods
     # ------------------
     
-        
-
-
     
     def read_limit_minus(self):
         # PROTECTED REGION ID(PhytronMCC.limit_minus_read) ENABLED START #
@@ -253,7 +232,7 @@ class PhytronMcc2(Device):
    
    
     
-# -------------
+    # -------------
     # Pipes methods
     # -------------
 
@@ -262,10 +241,11 @@ class PhytronMcc2(Device):
     # Commands
     # --------
 
-    # Communication    
+    # begin part of communication  
+    # --------------------------------  
     @command(dtype_in=str, dtype_out=str, doc_in='enter a command', doc_out='the answer')    
     def send_cmd(self,cmd):
-        # den String zum Senden zusammen bauen
+        # building the string to send it 
         s = self.__STX + str(self.__Addr) + cmd  + self.__ETX
         temp = self.ctrl.WriteRead(s)
         answer = temp.tostring()
@@ -285,7 +265,11 @@ class PhytronMcc2(Device):
         else:
             tmp = self.__NACK
         return (tmp)
+    # end part of communication 
+    # --------------------------
     
+    # read the actual position
+    # ------------------------
     @command(dtype_out=float, doc_out='position')    
     def get_pos(self):
         if (self.__Axis == 0):
@@ -295,13 +279,14 @@ class PhytronMcc2(Device):
         self.__Pos = float(tmp)
         return (self.__Pos)
         
-        
+    
+    # read the extended status    
+    # --------------------------------
     @command(polling_period=200, doc_out='state of limits and moving' )   
     def get_mcc_state(self):
         # PROTECTED REGION ID(PhytronMCC.get_mcc_state) ENABLED START #
         self.get_pos()
         answer = self.send_cmd('SE')
-    
         if (self.__Axis == 0):
             self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
             self.__Limit_Plus  = bool(int(answer[2]) & self.__LIM_PLUS)
@@ -312,13 +297,12 @@ class PhytronMcc2(Device):
             self.__Motor_Run = not(bool(int(answer[5]) & self.__MOVE))
         if self.__Motor_Run == False:
             self.set_state(PyTango.DevState.ON)
-       
-        # return ([self.__Limit_Minus, self.__Limit_Plus, self.__Motor_Run])
-                 
+                
         # PROTECTED REGION END #    //  PhytronMCC..get_mcc_state
         
         
-    
+    # begin get and set acceleration
+    # --------------------------------
     @command(dtype_out=int, doc_out='get acceleration')  
     def get_accel(self):
          # PROTECTED REGION ID(PhytronMCC.read_accel) ENABLED START #
@@ -337,8 +321,13 @@ class PhytronMcc2(Device):
         else:
             answer = self.send_cmd('YP15S' + str(Acceleration))    
         # PROTECTED REGION END #    //  PhytronMCC.write_accel
+    # --------------------------------
+    # end get and set acceleration
     
-    # Lesen der max. Frequenz
+    
+    
+    # begin get and set frequency
+    # --------------------------------
     @command(dtype_out=int, doc_out='get fmax.') 
     def get_f_max(self):
         # PROTECTED REGION ID(PhytronMCC.read_f_max) ENABLED START #
@@ -348,7 +337,7 @@ class PhytronMcc2(Device):
             return (int(self.send_cmd('YP14R')))
         # PROTECTED REGION END #    //  PhytronMCC.read_f_max
 
-    # Setzen der max. Frequenz
+    
     @command(dtype_in=int, doc_out='set fmax.')              
     def set_f_max(self, F_Max):
         # PROTECTED REGION ID(PhytronMCC.write_f_max) ENABLED START #
@@ -357,12 +346,17 @@ class PhytronMcc2(Device):
         else:
             answer = self.send_cmd('YP14S' + str(F_Max))
         # PROTECTED REGION END #    //  PhytronMCC.write_f_max
-        
+    # --------------------------------
+    # end get and set frequency
+    
+    
+    
+    # begin joging functions
+    # ----------------------
     @command
     @DebugIt()
     def Jog_Plus(self):
         # PROTECTED REGION ID(PhytronMCC.Jog_Plus) ENABLED START #
-        self.__Last_Read = 0    # Zuruecksetzen
         if (self.__Axis == 0):
             answer = self.send_cmd('XL+')
         else:
@@ -379,7 +373,13 @@ class PhytronMcc2(Device):
         else:
             answer = self.send_cmd('YL-')
         # PROTECTED REGION END #    //  PhytronMCC.Jog_Minus
-
+    # --------------------------------
+    # end joging functions
+    
+    
+    
+    # begin homing functions
+    # ----------------------
     @command
     @DebugIt()
     def Homing_Plus(self):
@@ -395,14 +395,17 @@ class PhytronMcc2(Device):
     @DebugIt()
     def Homing_Minus(self):
         # PROTECTED REGION ID(PhytronMCC.Homing_Minus) ENABLED START #
-        self.__Last_Read = 0    # Zuruecksetzen
         if (self.__Axis == 0):
             answer = self.send_cmd('X0-')
         else:
             answer = self.send_cmd('Y0-')
         # PROTECTED REGION END #    //  PhytronMCC.Homing_Minus
+    # --------------------------------
+    # end homing functions
     
     
+    # emergency stop 
+    # ----------------
     @command
     @DebugIt()
     def Stop(self):
@@ -414,8 +417,10 @@ class PhytronMcc2(Device):
             answer = self.send_cmd('YS')    
         self.__Last_Read = 0     
         # PROTECTED REGION END #    //  PhytronMCC.Stop
+    # ----------------
     
-    # Set movement unit register R2 
+    
+    # set movement unit register R2 
     @command(dtype_in=str, doc_in="step\nmm\ninch\ndegree",
             doc_out='the unit')
     @DebugIt()
@@ -425,7 +430,7 @@ class PhytronMcc2(Device):
             tmp = self.__MOVE_UNIT.index(self.__Unit) + 1
             if (self.__Axis == 0):
                 answer = self.send_cmd('XP2S' + str(tmp))
-                self.info_stream("In %s::set_unit()" % self.get_movement_unit())
+                self.info_stream("In %s::set_unit()" % self.set_movement_unit())
                 self.get_movement_unit()
             else:
                 answer = self.send_cmd('YP2S' + str(tmp))
@@ -436,6 +441,7 @@ class PhytronMcc2(Device):
     
     
     # Read movement unit register R2
+    # ------------------------------
     @command(dtype_out = str)
     def get_movement_unit(self):
         if (self.__Axis == 0):
@@ -446,7 +452,9 @@ class PhytronMcc2(Device):
         self.set_display_unit()
         return (self.__Unit)
    
+    
     # Set spindle_pitch R3
+    # --------------------
     @command(dtype_in=float, doc_in="spindle pitch (see manual page 50)",
             doc_out='the unit')
     @DebugIt()
@@ -460,6 +468,7 @@ class PhytronMcc2(Device):
     
     
     # Read spindle_pitch R3
+    # ----------------------
     @command(dtype_out = float)
     def get_spindle_pitch(self):
         if (self.__Axis == 0):
