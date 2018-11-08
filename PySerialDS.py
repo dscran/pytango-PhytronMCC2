@@ -46,7 +46,7 @@ import serial
 import array
 from PyTango.server import Device, DeviceMeta, device_property, class_property
 
-flagDebugIO = 1
+flagDebugIO = 0
 
 #==================================================================
 #   PySerial Class Description:
@@ -622,7 +622,7 @@ class PySerial(PyTango.Device_4Impl):
 		# 20ms Warten
 		time.sleep(0.02)	
 		argout =  []
-		
+		s=''
 		s = self.serial.readline()
 		self.debug_stream(s)
 		b = array.array('B', s)
