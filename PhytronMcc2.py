@@ -94,6 +94,7 @@ class PhytronMcc2(Device):
     __Axis          = 0
     __Pos  = 0
     __Unit = 'step'
+    __Pitch = 1.0
     __I = 0
     
     # Initializing the Device
@@ -126,17 +127,18 @@ class PhytronMcc2(Device):
         if str(self.ctrl.state()) == "OFF":
             self.ctrl.Open()
         
-          
-        self.set_state(PyTango.DevState.ON)
         
-        # read parameters from Hardware-Device MCC2
-        #if self.read_firmware_version 
+        # try to read some parameters from device MCC2
         
-        self.get_mcc_state()
-        self.read_position()
-        self.get_spindle_pitch()
-        self.get_movement_unit()
-        self.set_display_unit()
+        if ("MCC" in self.read_firmware_version()):
+            self.get_mcc_state()
+            self.read_position()
+            self.get_spindle_pitch()
+            self.get_movement_unit()
+            self.set_display_unit()
+            self.set_state(PyTango.DevState.ON)  
+        else:
+            self.set_state(PyTango.DevState.OFF)
         
         if flagDebugIO:
             print "Limit-: ",self.__Limit_Minus
@@ -150,15 +152,17 @@ class PhytronMcc2(Device):
         self.set_state(PyTango.DevState.OFF)
         # PROTECTED REGION END #    //  PhytronMCC.delete_device
     
-        
+    # set new properties ("unit", "format") for attribute "position"    
     def set_display_unit(self):
         self.attrib.unit= self.__Unit
-        if self.__SPINDLE == 1:
+        if (self.__Pitch%1) == 0.0:
             self.attrib.format = '%8d'
         else:
             self.attrib.format = '%8.3f'
-        # write properties in the database
+        # write properties to the database
         self.set_attribute_config_3(self.attrib)
+       
+       
        
     # ----------
     # Attributes
@@ -250,8 +254,11 @@ class PhytronMcc2(Device):
         answer = temp.tostring()
         if self.__ACK in answer:
             tmp =  answer.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)   
+        
+            self.set_state(PyTango.DevState.ON)
         else:
             tmp = self.__NACK
+            self.set_state(PyTango.DevState.FAULT)
         return (tmp)
     
 
@@ -259,7 +266,7 @@ class PhytronMcc2(Device):
     # ------------------------------------    
     @command(dtype_out=str, doc_out='the version of firmware')    
     def read_firmware_version(self):
-        version = self.send_cmd('IAR')
+        version = self.send_cmd('IVR')
         return (version)
         
         
@@ -417,7 +424,7 @@ class PhytronMcc2(Device):
     
     
     # set movement unit register R2 
-    @command(dtype_in=str, doc_in="step\nmm\ninch\ndegree",
+    @command(dtype_in=str,dtype_out=str, doc_in="step\nmm\ninch\ndegree",
             doc_out='the unit')
     @DebugIt()
     def set_movement_unit(self, unit):
@@ -426,14 +433,14 @@ class PhytronMcc2(Device):
             tmp = self.__MOVE_UNIT.index(self.__Unit) + 1
             if (self.__Axis == 0):
                 answer = self.send_cmd('XP2S' + str(tmp))
-                self.info_stream("In %s::set_unit()" % self.set_movement_unit())
-                self.get_movement_unit()
+                self.set_display_unit()
             else:
                 answer = self.send_cmd('YP2S' + str(tmp))
-                self.get_movement_unit()             
+                self.set_display_unit()      
         else:
             PyTango.Except.throw_exception("PhytronMCC.set_movement_unit", "Allowed unit values are step, mm, inch, degree", "set_movement_unit()")
-        
+        self.__Unit = self.get_movement_unit()
+        return(self.__Unit)
     
     
     # Read movement unit register R2
@@ -445,13 +452,13 @@ class PhytronMcc2(Device):
         else:
             answer = self.send_cmd('YP2R')
         self.__Unit = self.__MOVE_UNIT[int(answer)-1]
-        self.set_display_unit()
+       
         return (self.__Unit)
    
     
     # Set spindle_pitch R3
     # --------------------
-    @command(dtype_in=float, doc_in="spindle pitch (see manual page 50)",
+    @command(dtype_in=float, dtype_out=float, doc_in="spindle pitch (see manual page 50)",
             doc_out='the unit')
     @DebugIt()
     def set_spindle_pitch(self, pitch):
@@ -459,6 +466,8 @@ class PhytronMcc2(Device):
             answer = self.send_cmd('XP3S' + str(pitch))
         else:
             answer = self.send_cmd('YP3S' + str(pitch))
+        self.__Pitch =  self.get_spindle_pitch()
+        self.set_display_unit()
         
         
     
@@ -471,6 +480,7 @@ class PhytronMcc2(Device):
             answer = self.send_cmd('XP3R')
         else:
             answer = self.send_cmd('YP3R')
+        self.__Pitch = float(answer)
         return float(answer)
         
     
