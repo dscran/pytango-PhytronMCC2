@@ -33,10 +33,11 @@ from PyTango.server import Device, DeviceMeta, device_property
 from PyTango.server import attribute, pipe, command, class_property
 from PyTango import AttrQuality, AttrWriteType, DispLevel, DeviceProxy, UserDefaultAttrProp
 import PyTango
+import tango
 import sys
 
 
-flagDebugIO = 0
+flagDebugIO = 1
 
 
 class PhytronMcc2(Device): 
@@ -61,6 +62,12 @@ class PhytronMcc2(Device):
     Address = device_property(
         dtype='int16'
     )
+    
+    Alias = device_property(
+        dtype='str', default_value="MCC2"
+    )
+    
+    db = PyTango.Database()
      
 # definition some constants
  
@@ -87,8 +94,10 @@ class PhytronMcc2(Device):
     __Limit_Minus = False
     __Limit_Plus  = False
     __Motor_Run   = False
-    __MOTOR_NAME  = ''
-
+    __Motor_Name  = 'mcc2'
+    __Hold_Current= 0
+    __Run_Current = 0
+    
 # other private variables
     __Addr          = 0
     __Axis          = 0
@@ -109,14 +118,15 @@ class PhytronMcc2(Device):
         # get the properties of the attribute "position" from the database
         self.attrib = self.get_attribute_config_3('position')[0]
 
-        self.__Addr = self.Address
-        self.__Axis = self.Motor
+        self.__Addr         = self.Address
+        self.__Axis         = self.Motor
+        self.__Motor_Name   = self.Alias
 
         if flagDebugIO:
             print "Ctrl.Device:  %s" %( self.CtrlDevice)
             print "Modul Adresse: ",self.__Addr
             print "Motor: ",self.__Axis
-            
+            print "Motor_Name:  %s" %(self.__Motor_Name)
         try:
             self.ctrl = PyTango.DeviceProxy( self.CtrlDevice)
         except:
@@ -239,8 +249,9 @@ class PhytronMcc2(Device):
    
     def read_name(self):
         # PROTECTED REGION ID(PhytronMCC.read_name) ENABLED START #
-        return self.__MOTOR_NAME
+        return self.__Motor_Name
         # PROTECTED REGION END #    //  PhytronMCC.read_name
+    
     
     # -------------
     # Pipes methods
@@ -491,15 +502,80 @@ class PhytronMcc2(Device):
         return float(answer)
     
     
+    # Set alias motor name
+    # -------------------- 
     @command(dtype_in = str)    
     def set_name(self,mcc_name):
         # PROTECTED REGION ID(PhytronMCC.set_name) ENABLED START #
-        self.__MOTOR_NAME = mcc_name
+        self.__Motor_Name = mcc_name
+        self.db.put_device_property(self.get_name(),{'Alias':mcc_name})
         # PROTECTED REGION END #    //  PhytronMCC.set_name
 
+   
+    # Set running motor current
+    # -------------------- 
+    @command(dtype_in=int, dtype_out=str, doc_in="motor run current (see manual page 54)",
+            )    
+    def set_run_current(self, current):
+        if current not in range(1,26):
+            return 'input not in range 1..25'
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP41S' + str(current))
+        else:
+            answer = self.send_cmd('YP41S' + str(current))
+        self.__Run_Current =  self.get_run_current()
+        return str(self.__Run_Current)
+    
+    # Read running motor current
+    # ----------------------
+    @command(dtype_out = int)
+    def get_run_current(self):
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP41R')
+        else:
+            answer = self.send_cmd('YP41R')
+        self.__Run_Current = int(answer)
+        return self.__Run_Current
+    
+    # Set hold current
+    # -------------------- 
+    @command(dtype_in=int, dtype_out=str, doc_in="motor hold current (see manual page 54)",
+            )    
+    def set_hold_current(self, current):
+        if current not in range(1,26):
+            return 'input not in range 0..25'
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP40S' + str(current))
+        else:
+            answer = self.send_cmd('YP40S' + str(current))
+        self.__Hold_Current =  self.get_hold_current()
+        return str(self.__Hold_Current)
+    
+    # Read hold current
+    # ----------------------
+    @command(dtype_out = int)
+    def get_hold_current(self):
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP40R')
+        else:
+            answer = self.send_cmd('YP40R')
+        self.__Hold_Current = int(answer)
+        return self.__Hold_Current        
+    
+    # Write to EEProm
+    # --------------- 
+    @command(dtype_out = str)
+    def write_to_eeprom(self):
+        # PROTECTED REGION ID(PhytronMCC.set_name) ENABLED START #
+        answer = self.send_cmd('SA')
+        return 'parameter written to flash memory'
+        # PROTECTED REGION END #    //  PhytronMCC.set_name
+        
+        
 if __name__ == "__main__":    
     if flagDebugIO:
         print(tango.ApiUtil.get_env_var("TANGO_HOST"))
+    
     
     run((PhytronMcc2,))
     
