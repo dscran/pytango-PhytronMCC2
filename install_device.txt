@@ -59,11 +59,13 @@ Anlegen eines neuen Devices wie oben:
 
 Server (Servername/Instance) : PhytronMcc2/hhg
 Class: PhytronMcc2
-Device: hhg/MCC2/0.0
+Device: hhg/MCC2/Ctrl1_0.0
 
 "Register Server"
 
-Die anderen Achsen heissen dann hhg/MCC2/0.1 ../1.0 ../1.1 ../2.0 usw.
+Ctrl1: Controller 1 (jedes Rack hat eine Nummer)
+
+Die anderen Achsen heissen dann hhg/MCC2/Ctrl1_0.1 ../1.0 ../1.1 ../2.0 usw.
 
 
 2.2. Konfiguration
