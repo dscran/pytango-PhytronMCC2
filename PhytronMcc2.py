@@ -87,7 +87,7 @@ class PhytronMcc2(Device):
     __Limit_Minus = False
     __Limit_Plus  = False
     __Motor_Run   = False
-    
+    __MOTOR_NAME  = ''
 
 # other private variables
     __Addr          = 0
@@ -193,7 +193,11 @@ class PhytronMcc2(Device):
         unit='steps'
     )
     
-   
+    name = attribute(
+        dtype='string',
+        access= AttrWriteType.READ,
+        label="name",
+    )   
   
     # ------------------
     # Attributes methods
@@ -233,7 +237,10 @@ class PhytronMcc2(Device):
             
         # PROTECTED REGION END #    //  PhytronMCC.position_write
    
-   
+    def read_name(self):
+        # PROTECTED REGION ID(PhytronMCC.read_name) ENABLED START #
+        return self.__MOTOR_NAME
+        # PROTECTED REGION END #    //  PhytronMCC.read_name
     
     # -------------
     # Pipes methods
@@ -482,8 +489,13 @@ class PhytronMcc2(Device):
             answer = self.send_cmd('YP3R')
         self.__Pitch = float(answer)
         return float(answer)
-        
     
+    
+    @command(dtype_in = str)    
+    def set_name(self,mcc_name):
+        # PROTECTED REGION ID(PhytronMCC.set_name) ENABLED START #
+        self.__MOTOR_NAME = mcc_name
+        # PROTECTED REGION END #    //  PhytronMCC.set_name
 
 if __name__ == "__main__":    
     if flagDebugIO:
