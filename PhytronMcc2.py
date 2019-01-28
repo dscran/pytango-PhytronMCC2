@@ -90,7 +90,7 @@ class PhytronMcc2(Device):
     __LIM_PLUS  = 2
     __LIM_MINUS = 1
 
-# private status variables, are are updated by "mcc_state()"
+# private status variables, updated by "mcc_state()"
     __Limit_Minus = False
     __Limit_Plus  = False
     __Motor_Run   = False
