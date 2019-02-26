@@ -30,7 +30,7 @@ def create_device(ctrl, addr, axis):
     new_device_info_mcc._class = "PhytronMcc2"
     new_device_info_mcc.server = "PhytronMcc2/hhg"
     
-    new_device = NAME + ctrl + '_' + addr + '.' + axis
+    new_device = NAME + ctrl + '_' + addr + '_' + axis
     
     print("Creating device: %s" %new_device)    
     new_device_info_mcc.name = new_device
@@ -40,6 +40,7 @@ def create_device(ctrl, addr, axis):
 
 def create_properties(device_name, addr, axis):
     CTRL_DEVICE = "hhg/SerialDS/1"
+    MOTOR_NAME = "mcc_"
     property_names = ['Address','Motor','CtrlDevice']
    
     mcc = DeviceProxy(device_name)
@@ -50,6 +51,7 @@ def create_properties(device_name, addr, axis):
     prop_dict["CtrlDevice"] = CTRL_DEVICE
     prop_dict['Motor']      = int(axis)
     prop_dict['Address']    = int(addr)
+    prop_dict['Alias']      = MOTOR_NAME+ (addr) + "_" + axis
     
     mcc.put_property(prop_dict)
     
