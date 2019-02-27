@@ -1,17 +1,15 @@
 #!/bin/bash
 
-# 10.10.2018
+# 28.2.2019
 # Wrapper zum Starten von PySerialDS.py 
 # und PhytronMcc2.py 
 
 
 # Exportieren der Variable TANGO_HOST fuer die Bash-Shell
 
-#export TANGO_HOST=angstrom:10000
-export TANGO_HOST=10.6.16.78:10000
+export TANGO_HOST=angstrom:10000
 
-#TANGOHOST=angstrom
-TANGOHOST=10.6.16.78
+TANGOHOST=angstrom
 
 #Umleiten der Ausgabe in eine Log-Datei
 exec &>> /home/pi/Tango_Devices/MCC2/device.log
@@ -36,7 +34,7 @@ echo "starting PySerialDS device"
 ) 
 &>> /home/pi/Tango_Devices/MCC2/device.log 
 
-sleep 1
+sleep 5
 
 # Testen, ob der PySerialDS- Prozess laeuft, 
 # dann das Achsen-Device starten

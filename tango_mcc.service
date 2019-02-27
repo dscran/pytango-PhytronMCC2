@@ -1,5 +1,5 @@
 [Unit]
-Description=starting pyserialds
+Description=starting tango devices
 Requires=network-online.target
 After=network-online.target
 

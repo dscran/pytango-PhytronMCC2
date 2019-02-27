@@ -1,6 +1,6 @@
 1. Erstellen eines Shell-Scriptes zum Starten der Python-Devices
 
-Wir nenen es "device-wrapper.sh".
+Wir nennen es "device-wrapper.sh".
 
 Funktion:
 --------
@@ -19,7 +19,7 @@ $ chmod 777 device-wrapper.sh
 
 - Erstellen einer "systemd"-Datei unter "/etc/systemd/system"
 
-Wir nennen sie "tango_dev.service" und sie hat diesen Inhalt:
+Wir nennen sie "tango_mcc.service" und sie hat diesen Inhalt:
 
 ****
 [Unit]
@@ -41,12 +41,12 @@ StandardError=journal
 WantedBy=multi-user.target
 ****
 
-$ sudo chmod +x  tango_dev.service
+$ sudo chmod +x  tango_mcc.service
 
 Immer nach dem Aendern eines systemd-Files ausfuehren:
  
 $ sudo systemctl daemon-reload 
-$ sudo systemctl start tango_dev.service
+$ sudo systemctl start tango_mcc.service
 $ ps -edf
 ..
 pi        5226     1  2 15:14 ?        00:00:01 /usr/bin/python /home/pi/Tango_Devices/MCC2/PySerialDS.py Lab
@@ -57,7 +57,7 @@ Ok, die Prozesse laufen!
 
 Und stoppen:
 
-$ sudo systemctl stop tango_dev.service
+$ sudo systemctl stop tango_mcc.service
 $ ps -edf
 ..
 ..

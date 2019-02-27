@@ -75,6 +75,8 @@ Die Properties:
 Name: Address       Value: 0..15   			# Adresse des Moduls: 0..15
 Name: Motor			Value: 0 oder 1 		# Jedes Modul hat 2 Motorachsen, deshalb 0/1
 Name: CtrlDevice 	Value: hhg/SerialDS/1	# Name des Controller-Device: "hhg/SerialDS/1"
+Name: Alias			Value: string			# Name des Motors
+
 
 Im Quelltext sieht das so aus:
 
