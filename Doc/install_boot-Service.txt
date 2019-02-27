@@ -47,26 +47,16 @@ Immer nach dem Aendern eines systemd-Files ausfuehren:
  
 $ sudo systemctl daemon-reload 
 $ sudo systemctl start tango_mcc.service
-$ ps -edf
-..
-pi        5226     1  2 15:14 ?        00:00:01 /usr/bin/python /home/pi/Tango_Devices/MCC2/PySerialDS.py Lab
-pi        5229     1  2 15:14 ?        00:00:01 /usr/bin/python /home/pi/Tango_Devices/MCC2/PhytronMcc2.py Lab
-..
-
-Ok, die Prozesse laufen!
 
 Und stoppen:
 
 $ sudo systemctl stop tango_mcc.service
 $ ps -edf
-..
-..
-Weg sind sie!
 
 Jetzt bootfest machen:
 
-$ sudo systemctl enable tango_dev.service
-Created symlink /etc/systemd/system/multi-user.target.wants/tango_dev.service → /etc/systemd/system/tango_dev.service.
+$ sudo systemctl enable tango_mcc.service
+Created symlink /etc/systemd/system/multi-user.target.wants/tango_mcc.service → /etc/systemd/system/tango_mcc.service.
 
 
 
