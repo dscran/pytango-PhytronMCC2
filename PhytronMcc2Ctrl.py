@@ -46,7 +46,7 @@ import serial
 import array
 from PyTango.server import Device, DeviceMeta, device_property, class_property
 
-flagDebugIO = 0
+flagDebugIO = 1
 
 #==================================================================
 #   PhytronMcc2Ctrl Class Description:
@@ -73,29 +73,43 @@ class PhytronMcc2Ctrl(PyTango.Device_4Impl):
 #------------------------------------------------------------------
 #   Device constructor
 #------------------------------------------------------------------
-    def __init__(self,cl, name):
-        PyTango.Device_4Impl.__init__(self,cl,name)
+    def __init__(self, cl, name):
+        PyTango.Device_4Impl.__init__(self,cl,name)        
+        self.info_stream("In %s::__init__()" % self.get_name())
+        PhytronMcc2Ctrl.init_device(self)
 
+#------------------------------------------------------------------
+#   Device destructor
+#------------------------------------------------------------------
+    def delete_device(self):
+        self.info_stream("[Device delete_device method] for device %s" % self.get_name())
+
+#------------------------------------------------------------------
+#   Device initialization
+#------------------------------------------------------------------
+    def init_device(self):
+        self.info_stream("In %s::init_device()" % self.get_name())
+        self.set_state(PyTango.DevState.OFF)
+        self.get_device_properties(self.get_device_class())
+        
         self.configure = True
         self.serial = serial.Serial()
         
-        self.proxy = PyTango.DeviceProxy(self.get_name())
+        #db = PyTango.Database()
         
-        db = PyTango.Database()
+        #prop_names = db.get_device_property(self.get_name(), ['port', 'baudrate'])
         
-        prop_names = db.get_device_property(self.get_name(), ['port', 'baudrate'])
-        
-        if (prop_names.has_key('baudrate') == True) and (len(prop_names["baudrate"]) > 0):
-            self.baudrate = prop_names["baudrate"][0]
-            self.serial.baudrate = self.baudrate
+        #if (prop_names.has_key('baudrate') == True) and (len(prop_names["baudrate"]) > 0):
+        #self.baudrate = prop_names["baudrate"][0]
+        self.serial.baudrate = self.baudrate
             
-        if (prop_names.has_key('port') == True) and (len(prop_names["port"]) > 0):
-            self.port = prop_names["port"][0]
-            self.serial.port = self.port
+        #if (prop_names.has_key('port') == True) and (len(prop_names["port"]) > 0):
+        #    self.port = prop_names["port"][0]
+        self.serial.port = self.port
         
         if flagDebugIO:
-            print ("Baudrate is: ", int(prop_names["baudrate"][0])) 
-            print ("Port is: ", self.port)
+            print("PhytronMcc2Ctrl.init_device: port is %s " % self.port)
+            print("PhytronMcc2Ctrl.init_device: baudrate is %s " % self.baudrate)
             
         self.bytesize = 8
         self.serial.bytesize = self.bytesize
@@ -117,21 +131,9 @@ class PhytronMcc2Ctrl(PyTango.Device_4Impl):
 
         self.terminator = PhytronMcc2Ctrl.TERMINATOR[0]
         self.terminatorchar = chr(3)    # end of text PhytronMcc2Ctrl.TERMINATORCHAR[0]
-        PhytronMcc2Ctrl.init_device(self)
-
-#------------------------------------------------------------------
-#   Device destructor
-#------------------------------------------------------------------
-    def delete_device(self):
-        self.info_stream("[Device delete_device method] for device %s" % self.get_name())
-
-#------------------------------------------------------------------
-#   Device initialization
-#------------------------------------------------------------------
-    def init_device(self):
-        self.info_stream("In %s::init_device()" % self.get_name())
-        self.set_state(PyTango.DevState.OFF)
-        self.get_device_properties(self.get_device_class())
+        
+        # open serial port
+        self.open()
 
 #------------------------------------------------------------------
 #   Always excuted hook method
@@ -501,9 +503,16 @@ class PhytronMcc2Ctrl(PyTango.Device_4Impl):
             elif self.current_parity == PhytronMcc2Ctrl.PARITIES[1]:
                 self.serial.parity = serial.PARITY_EVEN
 
-        self.serial.open()
-        self.set_state(PyTango.DevState.ON)
-        self.configure = False
+        try:
+            self.serial.open()
+            self.set_state(PyTango.DevState.ON)
+            self.configure = False
+        except:
+            print("PhytronMcc2Ctrl.Open: failed to open %s " % self.port)
+            sys.exit(255)
+        
+        if flagDebugIO:
+            print("PhytronMcc2Ctrl.Open: connected to %s " % self.port)
 
 
 #---- Open command State Machine -----------------
