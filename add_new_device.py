@@ -8,15 +8,15 @@ import re
 import time
 
 
-NAME = "hhg/MCC2/Ctrl"
+NAME = "sxr/MCC2/Ctrl"
 
 ctrl, addr, axis = '','',''
 device_name=''
 
 
 def usage():
-    print("\nusage: add_new_device /hhg/MCC2/Ctrl[nof]_[addr].[motor]")
-    print("example: add_new_device /hhg/MCC2/Ctrl1_0.0")
+    print("\nusage: add_new_device /sxr/MCC2/Ctrl[nof]_[addr].[motor]")
+    print("example: add_new_device /sxr/MCC2/Ctrl1_0.0")
     print("   add a device with controller:1, address 0 and axis 0\n")
     print("   - nof: number of controller")
     print("   - addr: address of module (0..15)")
@@ -28,7 +28,7 @@ def create_device(ctrl, addr, axis):
     db = Database()
     new_device_info_mcc = DbDevInfo()
     new_device_info_mcc._class = "PhytronMcc2"
-    new_device_info_mcc.server = "PhytronMcc2/hhg"
+    new_device_info_mcc.server = "PhytronMcc2/raspi14"
     
     new_device = NAME + ctrl + '_' + addr + '_' + axis
     
@@ -39,7 +39,7 @@ def create_device(ctrl, addr, axis):
     
 
 def create_properties(device_name, addr, axis):
-    CTRL_DEVICE = "hhg/SerialDS/1"
+    CTRL_DEVICE = "sxr/SerialDS/1"
     MOTOR_NAME = "mcc_"
     property_names = ['Address','Motor','CtrlDevice']
    

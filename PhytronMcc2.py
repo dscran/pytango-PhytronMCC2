@@ -41,7 +41,7 @@ flagDebugIO = 1
 
 
 class PhytronMcc2(Device): 
-    __metaclass__ = DeviceMeta
+    #__metaclass__ = DeviceMeta
 
     # read the name of the CtrlDevice from the properties
     # read number of axise 0 or 1 ( one Module can control two motors)
@@ -51,21 +51,8 @@ class PhytronMcc2(Device):
     # Device Properties
     # -----------------
 
-    CtrlDevice = device_property(
-        dtype='str', default_value=""
-    )
     
-    Motor = device_property(
-        dtype='int16'
-    )
-    
-    Address = device_property(
-        dtype='int16'
-    )
-    
-    Alias = device_property(
-        dtype='str', default_value="MCC2"
-    )
+
     
     db = PyTango.Database()
      
@@ -106,9 +93,17 @@ class PhytronMcc2(Device):
     __Pitch = 1.0
     __I = 0
     
+    def __init__(self,cl, name):
+        PyTango.Device_4Impl.__init__(self,cl,name)
+        self.debug_stream("In __init__()")
+        PhytronMcc2.init_device(self)
+        #----- PROTECTED REGION ID(NewFocusPico8742.__init__) ENABLED START -----#
+        
+        #----- PROTECTED REGION END -----#  //  NewFocusPico8742.__init__
+    
     # Initializing the Device
     def init_device(self):
-        Device.init_device(self)
+        self.get_device_properties(self.get_device_class())
         
         self.proxy = DeviceProxy(self.get_name())
         
@@ -121,16 +116,16 @@ class PhytronMcc2(Device):
         self.__Addr         = self.Address
         self.__Axis         = self.Motor
         self.__Motor_Name   = self.Alias
-
+        
         if flagDebugIO:
-            print "Ctrl.Device:  %s" %( self.CtrlDevice)
-            print "Modul Adresse: ",self.__Addr
-            print "Motor: ",self.__Axis
-            print "Motor_Name:  %s" %(self.__Motor_Name)
+            print("Ctrl.Device:  %s" %( self.CtrlDevice))
+            print("Modul Adresse: ",self.__Addr)
+            print("Motor: ",self.__Axis)
+            print("Motor_Name:  %s" %(self.__Motor_Name))
         try:
             self.ctrl = PyTango.DeviceProxy( self.CtrlDevice)
         except:
-            print "PhytronMcc2.init_device: failed to create proxy to %s" % (self.CtrlDevice)
+            print("PhytronMcc2.init_device: failed to create proxy to %s" % (self.CtrlDevice))
             sys.exit( 255)
         
         # check if the CrlDevice ON, if not open the serial port
@@ -151,10 +146,10 @@ class PhytronMcc2(Device):
             self.set_state(PyTango.DevState.OFF)
         
         if flagDebugIO:
-            print "Limit-: ",self.__Limit_Minus
-            print "Limit+: ",self.__Limit_Plus
-            print "Run: ",self.__Motor_Run
-            print "Postion: ", self.__Pos
+            ("Limit-: ",self.__Limit_Minus)
+            print("Limit+: ",self.__Limit_Plus)
+            print("Run: ",self.__Motor_Run)
+            print("Postion: ", self.__Pos)
         
         
     def delete_device(self):
@@ -174,41 +169,7 @@ class PhytronMcc2(Device):
        
        
        
-    # ----------
-    # Attributes
-    # ----------
-
-   
-  
-    limit_minus = attribute(
-        dtype='bool',
-        label="Limit -",
-    )
-    limit_plus = attribute(
-        dtype='bool',
-        label="Limit +",
-    )
     
-    run = attribute(
-        dtype='bool',
-        label="motor running",
-    )
-    
-   
-    position = attribute(
-        dtype=float,
-        format='%8.3f',
-        access=AttrWriteType.READ_WRITE,
-        label="position",
-        unit='steps'
-    )
-    
-    name = attribute(
-        dtype='string',
-        access= AttrWriteType.READ,
-        label="name",
-    )   
-  
     # ------------------
     # Attributes methods
     # ------------------
@@ -570,15 +531,102 @@ class PhytronMcc2(Device):
         answer = self.send_cmd('SA')
         return 'parameter written to flash memory'
         # PROTECTED REGION END #    //  PhytronMCC.set_name
+
+class PhytronMcc2Class(PyTango.DeviceClass):
+
+    
+
+    class_property_list = {
+        }
+    
+    device_property_list = {
+        'CtrlDevice':
+        [PyTango.DevString, "The name of the controller Device",
+         ["sxr/PhytronMCC2/ctrl01"] ], 
+        'Motor':
+        [PyTango.DevULong, "The name of the controller Device",
+         [0] ],
+        'Address':
+        [PyTango.DevULong, "The name of the controller Device",
+         [0] ],
+        'Alias':
+        [PyTango.DevString, "The name of the controller Device",
+         ["none"] ], 
+        }
+    
+    cmd_list = {}
+    
+    attr_list = {'position':
+                [[PyTango.DevFloat,
+                PyTango.SCALAR,
+                PyTango.READ_WRITE],
+                {
+                    'Memorized':"true",
+                } ],}
+    # ----------
+    # Attributes
+    # ----------
+
+   
+  
+    limit_minus = attribute(
+        dtype='bool',
+        label="Limit -",
+    )
+    limit_plus = attribute(
+        dtype='bool',
+        label="Limit +",
+    )
+    
+    run = attribute(
+        dtype='bool',
+        label="motor running",
+    )
+    
+    position = attribute(
+        dtype=float,
+        format='%8.3f',
+        access=AttrWriteType.READ_WRITE,
+        label="position",
+        unit='steps'
+    )
+    
+    
+    name = attribute(
+        dtype='string',
+        access= AttrWriteType.READ,
+        label="name",
+    )   
+  
+
+def main():
+    #try:
+    py = PyTango.Util(sys.argv)
+    import PhytronMcc2Ctrl
+    try:
+        py.add_class(PhytronMcc2Ctrl.PhytronMcc2CtrlClass, PhytronMcc2Ctrl.PhytronMcc2Ctrl,'PhytronMcc2Ctrl')
+    except:
+        print("Error adding class PhytronMcc2Ctrl,  Device will not be created")
+    #
+    # the sequence is important, the controller has to start first
+    #
+    py.add_class(PhytronMcc2Class, PhytronMcc2,'PhytronMcc2')
+
+    #----- PROTECTED REGION END -----#  //  NewFocusPico8742.add_classes
+
+    U = PyTango.Util.instance()
+    U.server_init()
+    U.server_run()
+
+    #except PyTango.DevFailed as e:
+    #    print('-------> Received a DevFailed exception:',e)
+    #except Exception as e:
+    #    print('-------> An unforeseen exception occured....',e)
+
+if __name__ == '__main__':
+    main()
+
         
-        
-if __name__ == "__main__":    
-    if flagDebugIO:
-        print(tango.ApiUtil.get_env_var("TANGO_HOST"))
-    
-    
-    run((PhytronMcc2,))
-    
 
 
     

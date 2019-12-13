@@ -7,9 +7,9 @@
 
 # Exportieren der Variable TANGO_HOST fuer die Bash-Shell
 
-export TANGO_HOST=angstrom:10000
+export TANGO_HOST=ampere:10000
 
-TANGOHOST=angstrom
+TANGOHOST=ampere
 
 #Umleiten der Ausgabe in eine Log-Datei
 exec &>> /home/pi/Tango_Devices/MCC2/device.log
@@ -30,7 +30,7 @@ echo "starting PySerialDS device"
 
 # Fork/exec
 (
-  exec /usr/bin/python /home/pi/Tango_Devices/MCC2/PySerialDS.py hhg &
+  exec /usr/bin/python /home/pi/Tango_Devices/MCC2/PySerialDS.py raspi14 &
 ) 
 &>> /home/pi/Tango_Devices/MCC2/device.log 
 
@@ -43,7 +43,7 @@ if pgrep -fl "PySerialDS.py";
 then 
 (
   echo "starting PhytronMcc2"
-  exec /usr/bin/python /home/pi/Tango_Devices/MCC2/PhytronMcc2.py hhg &
+  exec /usr/bin/python /home/pi/Tango_Devices/MCC2/PhytronMcc2.py raspi14 &
 ) 
 &>> /home/pi/Tango_Devices/MCC2/device.log  
 fi
