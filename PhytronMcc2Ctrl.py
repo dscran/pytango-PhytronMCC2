@@ -25,7 +25,6 @@
 #
 #         (c) - Software Engineering Group - ESRF
 #=============================================================================
-#
 
 import time
 import PyTango
@@ -36,19 +35,6 @@ from PyTango.server import Device, DeviceMeta, device_property, class_property
 
 flagDebugIO = 1
 
-#==================================================================
-#   PhytronMcc2Ctrl Class Description:
-#
-#         Python Serial Line device server for  windows and linux
-#
-#==================================================================
-#   Device States Description:
-#
-#   DevState.ON :     Serial Port Open
-#   DevState.FAULT :
-#   DevState.OFF :
-#==================================================================
-
 
 class PhytronMcc2Ctrl(PyTango.Device_4Impl):
 
@@ -58,23 +44,17 @@ class PhytronMcc2Ctrl(PyTango.Device_4Impl):
     TERMINATOR = ["LF/CR", "CR/LF", "CR", "LF", "NONE"]
     TERMINATORCHAR = ["\n\r", "\r\n", "\r", "\n", ""]
 
-#------------------------------------------------------------------
-#   Device constructor
-#------------------------------------------------------------------
+
     def __init__(self, cl, name):
         PyTango.Device_4Impl.__init__(self,cl,name)        
         self.info_stream("In %s::__init__()" % self.get_name())
         PhytronMcc2Ctrl.init_device(self)
 
-#------------------------------------------------------------------
-#   Device destructor
-#------------------------------------------------------------------
+
     def delete_device(self):
         self.info_stream("[Device delete_device method] for device %s" % self.get_name())
 
-#------------------------------------------------------------------
-#   Device initialization
-#------------------------------------------------------------------
+
     def init_device(self):
         self.info_stream("In %s::init_device()" % self.get_name())
         self.set_state(PyTango.DevState.OFF)
@@ -114,319 +94,13 @@ class PhytronMcc2Ctrl(PyTango.Device_4Impl):
         # open serial port
         self.open()
 
-#------------------------------------------------------------------
-#   Always excuted hook method
-#------------------------------------------------------------------
+
     def always_executed_hook(self):
         self.info_stream("In %s::always_excuted_hook()" % self.get_name())
 
 
-
-#==================================================================
-#
-#   PhytronMcc2Ctrl read/write attribute methods
-#
-#==================================================================
-    def read_attr_hardware(self,data):
-        self.info_stream("In %s::read_attr_hardware()" % self.get_name())
-
-
-    def read_port(self, attr):
-        self.info_stream("In %s::read_port()" % self.get_name())
-
-        #   Add your own code here
-        attr_Port_read = self.serial.port
-        attr.set_value(attr_Port_read)
-
-
-    def write_port(self, attr):
-        self.info_stream("In %s::write_port()" % self.get_name())
-        data=[]
-        attr.get_write_value(data)
-        self.debug_stream("Attribute value = %s" % str(data))
-
-        #   Add your own code here
-        self.port = data[0]
-        self.configure = True
-
-
-    def is_port_allowed(self, req_type):
-            #   End of Generated Code
-            #   Re-Start of Generated Code
-        return True
-
-
-    def read_baudrate(self, attr):
-        self.info_stream("In %s::read_baudrate()" % self.get_name())
-
-        #   Add your own code here
-
-        attr_baudrate_read = self.serial.baudrate
-        attr.set_value(attr_baudrate_read)
-
-
-    def write_baudrate(self, attr):
-        self.info_stream("In %s::write_baudrate()" % self.get_name())
-        data=[]
-        attr.get_write_value(data)
-        self.debug_stream("Attribute value = %s" % str(data))
-        #   Add your own code here
-        self.baudrate = data[0]
-        self.configure = True
-
-#---- Baudrate attribute State Machine -----------------
-    def is_baudrate_allowed(self, req_type):
-            #   End of Generated Code
-            #   Re-Start of Generated Code
-        return True
-
-
-#------------------------------------------------------------------
-#   read DataBits attribute
-#------------------------------------------------------------------
-    def read_DataBits(self, attr):
-        self.info_stream("In %s::read_DataBits()" % self.get_name())
-
-        #   Add your own code here
-
-        attr_DataBits_read = self.serial.bytesize
-        attr.set_value(attr_DataBits_read)
-
-
-#------------------------------------------------------------------
-#   write DataBits attribute
-#------------------------------------------------------------------
-    def write_DataBits(self, attr):
-        self.info_stream("In %s::write_DataBits()" % self.get_name())
-        data=[]
-        attr.get_write_value(data)
-        self.debug_stream("Attribute value = %s" % str(data))
-
-        #   Add your own code here
-        self.bytesize = data[0]
-        self.configure = True
-
-#---- DataBits attribute State Machine -----------------
-    def is_DataBits_allowed(self, req_type):
-            #   End of Generated Code
-            #   Re-Start of Generated Code
-        return True
-
-
-#------------------------------------------------------------------
-#   read StopBits attribute
-#------------------------------------------------------------------
-    def read_StopBits(self, attr):
-        self.info_stream("In %s::read_StopBits()" % self.get_name())
-
-        #   Add your own code here
-
-        attr_StopBits_read = self.serial.stopbits
-        attr.set_value(attr_StopBits_read)
-
-
-#------------------------------------------------------------------
-#   write StopBits attribute
-#------------------------------------------------------------------
-    def write_StopBits(self, attr):
-        self.info_stream("In %s::write_StopBits()" % self.get_name())
-        data=[]
-        attr.get_write_value(data)
-        self.debug_stream("Attribute value = %s" % str(data))
-
-        #   Add your own code here
-        self.stopbits = data[0]
-        self.configure = True
-
-#---- StopBits attribute State Machine -----------------
-    def is_StopBits_allowed(self, req_type):
-            #   End of Generated Code
-            #   Re-Start of Generated Code
-        return True
-
-
-#------------------------------------------------------------------
-#   read Terminator attribute
-#------------------------------------------------------------------
-    def read_Terminator(self, attr):
-        self.info_stream("In %s::read_Terminator()" % self.get_name())
-
-        #   Add your own code here
-
-        attr_Terminator_read = self.terminator
-        attr.set_value(attr_Terminator_read)
-
-
-#------------------------------------------------------------------
-#   write Terminator attribute
-#------------------------------------------------------------------
-    def write_Terminator(self, attr):
-        self.info_stream("In %s::write_Terminator()" % self.get_name())
-        data=[]
-        attr.get_write_value(data)
-        self.debug_stream("Attribute value = %s" % str(data))
-        
-        #   Add your own code here
-        
-        data[0] = data[0].upper()
-        if data[0] in PhytronMcc2Ctrl.TERMINATOR:
-            self.terminator = data[0]
-            self.terminatorchar = PhytronMcc2Ctrl.TERMINATORCHAR[PhytronMcc2Ctrl.TERMINATOR.index(data[0])]
-        else: 
-            msg = "Allowed terminator values are "+", ".join(PhytronMcc2Ctrl.TERMINATOR)
-            PyTango.Except.throw_exception("PhytronMcc2Ctrl_write_Terminator", msg, "write_Terminator()")
-
-
-#---- Terminator attribute State Machine -----------------
-    def is_Terminator_allowed(self, req_type):
-            #   End of Generated Code
-            #   Re-Start of Generated Code
-        return True
-
-
-#------------------------------------------------------------------
-#   read FlowControl attribute
-#------------------------------------------------------------------
-    def read_FlowControl(self, attr):
-        self.info_stream("In %s::read_FlowControl()" % self.get_name())
-
-        #   Add your own code here
-
-        attr_FlowControl_read = self.current_flowcontrol
-        attr.set_value(attr_FlowControl_read)
-
-
-#------------------------------------------------------------------
-#   write FlowControl attribute
-#------------------------------------------------------------------
-    def write_FlowControl(self, attr):
-        self.info_stream("In %s::write_FlowControl()" % self.get_name())
-        data=[]
-        attr.get_write_value(data)
-        self.debug_stream("Attribute value = %s" % str(data))
-
-        #   Add your own code here
-        data[0] = data[0].lower()
-        if data[0] in PhytronMcc2Ctrl.FLOWCONTROL:
-            self.flowcontrol = data[0]
-            self.configure = True   
-        else:
-            PyTango.Except.throw_exception("PhytronMcc2Ctrl_write_FlowControl", "Allowed flow control values are none, software, hardware and sw/hw", "write_FlowControl()")
-
-
-
-#---- FlowControl attribute State Machine -----------------
-    def is_FlowControl_allowed(self, req_type):
-            #   End of Generated Code
-            #   Re-Start of Generated Code
-        return True
-
-
-#------------------------------------------------------------------
-#   read Timeout attribute
-#------------------------------------------------------------------
-    def read_Timeout(self, attr):
-        self.info_stream("In %s::read_Timeout()" % self.get_name())
-
-        #   Add your own code here
-
-        attr_Timeout_read = int(self.serial.timeout * 1000)
-        attr.set_value(attr_Timeout_read)
-
-
-#------------------------------------------------------------------
-#   write Timeout attribute
-#------------------------------------------------------------------
-    def write_Timeout(self, attr):
-        self.info_stream("In %s::write_Timeout()" % self.get_name())
-        data=[]
-        attr.get_write_value(data)
-        self.debug_stream("Attribute value = %s" % str(data))
-
-        #   Add your own code here
-        if data[0] == 0:
-            self.timeout = 0
-        else:
-            self.timeout = float(data[0])/1000
-        self.configure = True
-
-#---- Timeout attribute State Machine -----------------
-    def is_Timeout_allowed(self, req_type):
-            #   End of Generated Code
-            #   Re-Start of Generated Code
-        return True
-
-
-#------------------------------------------------------------------
-#   read Parity attribute
-#------------------------------------------------------------------
-    def read_Parity(self, attr):
-        self.info_stream("In %s::read_Parity()" % self.get_name())
-
-        #   Add your own code here
-
-        attr_Parity_read = self.current_parity
-        attr.set_value(attr_Parity_read)
-
-
-#------------------------------------------------------------------
-#   write Parity attribute
-#------------------------------------------------------------------
-    def write_Parity(self, attr):
-        self.info_stream("In %s::write_Parity()" % self.get_name())
-        data=[]
-        attr.get_write_value(data)
-        self.debug_stream("Attribute value = %s" % str(data))
-
-        #   Add your own code here
-        data[0] = data[0].lower()
-        if data[0] in PhytronMcc2Ctrl.PARITIES:
-            self.parity = data[0]
-            self.configure = True
-        else:
-            PyTango.Except.throw_exception("PhytronMcc2Ctrl_write_Parity", "Allowed parity values are none, odd, even", "write_Parity()")
-
-
-#---- Parity attribute State Machine -----------------
-    def is_Parity_allowed(self, req_type):
-            #   End of Generated Code
-            #   Re-Start of Generated Code
-        return True
-
-
-#------------------------------------------------------------------
-#   read InputBuffer attribute
-#------------------------------------------------------------------
-    def read_InputBuffer(self, attr):
-        self.info_stream("In %s::read_InputBuffer()" % self.get_name())
-
-        #   Add your own code here
-        try:
-            attr_InputBuffer_read = self.serial.inWaiting()
-            attr.set_value(attr_InputBuffer_read)
-        except:
-            pass
-
-
-#---- InputBuffer attribute State Machine -----------------
-    def is_InputBuffer_allowed(self, req_type):
-        if self.get_state() in [PyTango.DevState.FAULT,
-                                PyTango.DevState.OFF]:
-            #   End of Generated Code
-            #   Re-Start of Generated Code
-            return False
-        return True
-
-
-
-#==================================================================
-#
-#   PhytronMcc2Ctrl command methods
-#
-#==================================================================
-
     def open(self):
-        self.info_stream("In %s::Open()" % self.get_name())
+        self.info_stream("In %s::open()" % self.get_name())
         #   Add your own code here
 
         # configure port
@@ -465,11 +139,11 @@ class PhytronMcc2Ctrl(PyTango.Device_4Impl):
             self.set_state(PyTango.DevState.ON)
             self.configure = False
         except:
-            print("PhytronMcc2Ctrl.Open: failed to open %s " % self.port)
+            print("PhytronMcc2Ctrl.open: failed to open %s " % self.port)
             sys.exit(255)
         
         if flagDebugIO:
-            print("PhytronMcc2Ctrl.Open: connected to %s " % self.port)
+            print("PhytronMcc2Ctrl.open: connected to %s " % self.port)
 
 
     def is_open_allowed(self):
@@ -623,17 +297,11 @@ class PhytronMcc2Ctrl(PyTango.Device_4Impl):
         return True
 
 
-#==================================================================
-#
-#   PhytronMcc2CtrlClass class definition
-#
-#==================================================================
 class PhytronMcc2CtrlClass(PyTango.DeviceClass):
 
     #   Class Properties
     class_property_list = {
         }
-
 
     #   Device Properties
     device_property_list = {
@@ -647,7 +315,6 @@ class PhytronMcc2CtrlClass(PyTango.DeviceClass):
             [0]],
 
         }
-
 
     #   Command definitions
     cmd_list = {
@@ -663,8 +330,6 @@ class PhytronMcc2CtrlClass(PyTango.DeviceClass):
         'flush_output':
             [[PyTango.DevVoid, ""],
             [PyTango.DevVoid, ""]],
-        
-        
         'write':
             [[PyTango.DevString, ""],
             [PyTango.DevVoid, ""]],
@@ -674,12 +339,9 @@ class PhytronMcc2CtrlClass(PyTango.DeviceClass):
         'read_line':
             [[PyTango.DevVoid, ""],
             [PyTango.DevVarCharArray, "Characters readed"]],
-        
-    # added by Dirk
         'write_read':
             [[PyTango.DevString, ""],
             [PyTango.DevVarCharArray, "Characters readed"]],
-            
         'read_until':
             [[PyTango.DevUChar, "end char"],
             [PyTango.DevVarCharArray, "Characters readed"]],            
@@ -688,89 +350,9 @@ class PhytronMcc2CtrlClass(PyTango.DeviceClass):
 
     #   Attribute definitions
     attr_list = {
-        'Port':
-            [[PyTango.DevString,
-            PyTango.SCALAR,
-            PyTango.READ_WRITE],
-            {
-                'Memorized':"true",
-            } ],
-        'baudrate':
-            [[PyTango.DevLong,
-            PyTango.SCALAR,
-            PyTango.READ_WRITE],
-            {
-                'label':"Baudrate",
-                'Memorized':"true",
-            } ],
-        'DataBits':
-            [[PyTango.DevShort,
-            PyTango.SCALAR,
-            PyTango.READ_WRITE],
-            {
-                'label':"DataBits",
-                'max value':8,
-                'min value':5,
-                'Memorized':"true",
-            } ],
-        'StopBits':
-            [[PyTango.DevShort,
-            PyTango.SCALAR,
-            PyTango.READ_WRITE],
-            {
-                'label':"StopBits",
-                'max value':2,
-                'min value':1,
-                'description':"1\n2\n",
-                'Memorized':"true",
-            } ],
-        'Terminator':
-            [[PyTango.DevString,
-            PyTango.SCALAR,
-            PyTango.READ_WRITE],
-            {
-                'description':"CR\nLF\nCR/LF\nNONE",
-                'Memorized':"true",
-            } ],
-        'FlowControl':
-            [[PyTango.DevString,
-            PyTango.SCALAR,
-            PyTango.READ_WRITE],
-            {
-                'label':"FlowControl",
-                'description':"none\nhardware\nsoftware",
-                'Memorized':"true",
-            } ],
-        'Timeout':
-            [[PyTango.DevShort,
-            PyTango.SCALAR,
-            PyTango.READ_WRITE],
-            {
-                'label':"Timeout",
-                'min value':0,
-                'description':"timeout=None            #wait forever\ntimeout=0               #non-blocking mode (return immediately on read)\ntimeout=x               #set timeout to x miliseconds (float allowed)",
-                'Memorized':"true",
-            } ],
-        'Parity':
-            [[PyTango.DevString,
-            PyTango.SCALAR,
-            PyTango.READ_WRITE],
-            {
-                'description':"none\nodd\neven",
-                'Memorized':"true",
-            } ],
-        'InputBuffer':
-            [[PyTango.DevLong,
-            PyTango.SCALAR,
-            PyTango.READ]],
         }
 
 
-#==================================================================
-#
-#   PhytronMcc2Ctrl device server main method
-#
-#==================================================================
 def main(*args):
     try:
         py = PyTango.Util(sys.argv)
@@ -784,11 +366,6 @@ def main(*args):
     except Exception, e:
         pass
 
-#==================================================================
-#
-# PhytronMcc2Ctrl main call
-#
-#==================================================================
 
 if __name__ == '__main__':
     main()
