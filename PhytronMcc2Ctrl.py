@@ -70,21 +70,6 @@ class PhytronMcc2Ctrl(PyTango.Device_4Impl):
     TERMINATOR = ["LF/CR", "CR/LF", "CR", "LF", "NONE"]
     TERMINATORCHAR = ["\n\r", "\r\n", "\r", "\n", ""]
 
-#---- Aux Methods ----
-    def serialScan():
-        for i in range(256):
-            try:
-                s = serial.Serial(i)
-                available.append( (i, s.portstr))
-                s.close()   #explicit close 'cause of delayed GC in java
-                return s.portstr
-            except serial.SerialException:
-                pass
-        return ""
-
-    serialScan = staticmethod(serialScan)
-
-
 #------------------------------------------------------------------
 #   Device constructor
 #------------------------------------------------------------------
