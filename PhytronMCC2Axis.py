@@ -106,6 +106,7 @@ class PhytronMCC2Axis(Device):
 
     conversion_factor = attribute(
         dtype='float',
+	format='%10.8f',
         label="conversion factor",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
@@ -167,7 +168,7 @@ class PhytronMCC2Axis(Device):
         if ("MCC" in self.read_firmware_version()):
             self.get_mcc_state()
             self.read_position()
-            self.get_spindle_pitch()
+            self.read_conversion_factor()
             self.get_movement_unit()
             self.set_display_unit()
             self.set_state(DevState.ON)
