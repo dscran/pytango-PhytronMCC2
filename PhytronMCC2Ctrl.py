@@ -16,23 +16,25 @@ flagDebugIO = 0
 class PhytronMCC2Ctrl(Device):
     # device properties
     Port = device_property(
-        dtype='str', default_value="/dev/ttyMCC"
+        dtype="str",
+        default_value="/dev/ttyMCC",
     )
 
     Baudrate = device_property(
-        dtype='int16', default_value="115200"
+        dtype="int",
+        default_value="115200",
     )
     
     # device attributes
     port = attribute(
-        dtype='str',
+        dtype="str",
         label="port",
         access=AttrWriteType.READ,
         display_level=DispLevel.OPERATOR,
     )
 
     baudrate = attribute(
-        dtype='int16',
+        dtype="int",
         label="baudrate",
         access=AttrWriteType.READ,
         display_level=DispLevel.OPERATOR,
@@ -90,7 +92,7 @@ class PhytronMCC2Ctrl(Device):
         return self.Port
 
     def read_baudrate(self):
-        return self.Baudrate
+        return int(self.Baudrate)
 
     # commands
     @command
