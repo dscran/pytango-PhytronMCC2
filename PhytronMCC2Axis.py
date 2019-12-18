@@ -167,7 +167,9 @@ class PhytronMCC2Axis(Device):
 
         if ("MCC" in self.read_firmware_version()):
             db = Database()
-            self.__Inverted = db.get_device_attribute_property(self.get_name() + 'Inverted',['__value'])
+            attr = db.get_device_attribute_property(self.get_name(), ['inverted'])
+            self.__Inverted = attr['inverted']['__value'][0]
+            print(self.__Inverted)
             self.get_mcc_state()
             self.read_position()
             self.read_conversion_factor()
