@@ -77,14 +77,14 @@ class PhytronMCC2Axis(Device):
     )
 
     acceleration = attribute(
-        dtype='int',
+        dtype='float',
         label="acceleration",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
 
     frequency_max = attribute(
-        dtype='int',
+        dtype='float',
         label="frequency_max",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
@@ -234,26 +234,26 @@ class PhytronMCC2Axis(Device):
             answer = self.send_cmd('XP15R')
         else:
             answer = self.send_cmd('YP15R')
-        return int(answer)
+        return float(answer)
 
     def write_acceleration(self, value):
         if (self.__Axis == 0):
-            self.send_cmd('XP15S{:d}'.format(value))
+            self.send_cmd('XP15S{:f}'.format(value))
         else:
-            self.send_cmd('YP15S{:d}'.format(value))
+            self.send_cmd('YP15S{:f}'.format(value))
 
     def read_frequency_max(self):
         if (self.__Axis == 0):
             answer = self.send_cmd('XP14R')
         else:
             answer = self.send_cmd('YP14R')
-        return int(answer)
+        return float(answer)
 
     def write_frequency_max(self, value):
         if (self.__Axis == 0):
-            self.send_cmd('XP14S{:d}'.format(value))
+            self.send_cmd('XP14S{:f}'.format(value))
         else:
-            self.send_cmd('YP14S{:d}'.format(value))
+            self.send_cmd('YP14S{:f}'.format(value))
 
     def read_run_current(self):
         if (self.__Axis == 0):
