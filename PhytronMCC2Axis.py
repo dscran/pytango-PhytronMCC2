@@ -201,7 +201,7 @@ class PhytronMCC2Axis(Device):
             ac.format = '%8.3f'
         self.set_attribute_config_3(ac)
 
-    def get_pos(self):
+    def get_position(self):
         if (self.__Axis == 0):
             tmp = self.send_cmd('X' + self.__REG_STEP_CNT + 'R')
         else:
@@ -343,7 +343,7 @@ class PhytronMCC2Axis(Device):
         return (version)
 
     @command(dtype_in=float, doc_in='position')
-    def set_pos(self, value):
+    def set_position(self, value):
         if self.__Inverted:
             value = -1*value
         if (self.__Axis == 0):
@@ -353,7 +353,7 @@ class PhytronMCC2Axis(Device):
 
     @command(polling_period=200, doc_out='state of limits and moving')
     def get_mcc_state(self):
-        self.get_pos()
+        self.get_position()
         answer = self.send_cmd('SE')
         if (self.__Axis == 0):
             if self.__Inverted:
