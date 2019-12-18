@@ -1,15 +1,12 @@
 [Unit]
-Description=starting tango devices
+Description=tango PhytronMCC2 devices
 Requires=network-online.target
-After=network-online.target
+After=multi-user.target
 
 [Service]
-Type=forking
-GuessMainPID=no
-ExecStart=/home/pi/Tango_Devices/MCC2/device_wrapper.sh
+EnvironmentFile=/etc/tangorc
+ExecStart=/home/pi/Tango_Devices/MCC2/PhytronMCC2.py mcc01
 WorkingDirectory=/home/pi/Tango_Devices/MCC2
-User=pi
-Restart=on-abort
 StandardOutput=journal
 StandardError=journal
 
