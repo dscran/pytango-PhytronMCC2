@@ -33,14 +33,14 @@ class PhytronMCC2Axis(Device):
     # device attributes
     limit_minus = attribute(
         dtype='bool',
-        label="Limit -",
+        label="limit -",
         access=AttrWriteType.READ,
         display_level=DispLevel.OPERATOR,
     )
 
     limit_plus = attribute(
         dtype='bool',
-        label="Limit +",
+        label="limit +",
         access=AttrWriteType.READ,
         display_level=DispLevel.OPERATOR,
     )
@@ -139,7 +139,6 @@ class PhytronMCC2Axis(Device):
     __Pos = 0
     __Unit = 'step'
     __Conv_Factor = 1.0
-    __I = 0
 
     def init_device(self):
         self.debug_stream("In init_device()")
