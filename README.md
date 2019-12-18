@@ -1,89 +1,82 @@
-# Project Title
 
-One Paragraph of project description goes here
+# Phytron MCC2 Tango device server
+
+This a Tango device server written in PyTango for a Phytron MCC2 stepper motor controller using the RS485 serial interface.
+It consits of a PhytronMCC2Ctrl device server that handles the communication with the RS485 bus and one to many PhytronMCC2Axis device servers implementing the actual interface to the stepper axis.
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+This Tango device server is meant to run on a Raspberry PI connected to the Phytron MCC2 modules via a RS485 serial to USB converter.
 
-### Prerequisites
+## Installation
 
-What things you need to install the software and how to install them
+### USB Serial converter
 
-```
-Give examples
-```
+Create a udev rule in order to mount the USB Serial converter always under the same link, e.g. `/dev/ttyMCC`
 
-### Installing
+First check the VendorID, ProductID, and SerialNumber using `dmesg`
+Then add a new udev rule
+    
+    sudo nano /etc/udev/rules.d/55-usbcom.rules
+    SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="A106K4W0", SYMLINK+="ttyMCC", MODE="0666"
 
-A step by step series of examples that tell you how to get a development env running
+Relaod and apply the udev rule by
 
-Say what the step will be
+    sudo udevadm control --reload
+    sudo udevadm trigger --action=add
 
-```
-Give the example
-```
 
-And repeat
+### Jive Server Wizard
+In order to create the PhytronMCC2 device servers in the TangoDB use **Jive** and **Tools/Server Wizard**
+The **Server name** is the name of the python script (without .py) that needs to be started
 
-```
-until finished
-```
+    PhytronMCC2
 
-End with an example of getting some data out of the system or using it for a little demo
+The **Instance name** is the argument that needs to be given when running the script above. Lets use the hostname of the Raspi as instance name, e.g.
 
-## Running the tests
+    mcc01
 
-Explain how to run the automated tests for this system
+With in the **Class Selection** you find the two different classes for the controller and axis. First select the **PhytronMCC2Ctrl** class and click **Declare Device**.
+As a **Device name**, which must be a unique identifier within the Tango DB, use the following syntax:
 
-### Break down into end to end tests
+    Domain/Family/Member
+  
+So in this case lets use
 
-Explain what these tests test and why
+    sxr/PhytronMCC2/ctrl01
 
-```
-Give an example
-```
+Click next and add the correct values for the **baudrate** and **port**.
+Before clicking *Finish* use the *New Class* button to define/configure one or multiple **PhytronMCC2Axis** 
+Set the **Device Name**:
 
-### And coding style tests
+    sxr/PhytronMCC2/ctrl01_axis_0_0
+or
 
-Explain what these tests test and why
+    sxr/PhytronMCC2/MyMotorAlias
 
-```
-Give an example
-```
+Remember that the Device name needs to be unique!
+Enter the following properties accordingly.
+- Alias: something that describes your motor axis
+- Axis 0/1: index of the axis on the selected MCC2 module
+- Address 0-5: index of the MCC2 module in the controller
+- CtrlDevice: Device name of the PhytronMCC2Ctrl linked to the axis,
 
-## Deployment
+e.g.
 
-Add additional notes about how to deploy this on a live system
+    sxr/PhytronMCC2/ctrl01
 
-## Built With
+### Systemd Service
 
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
+Copy the file `tango_mcc2.service` to `/etc/systemd/system` and make it executable `sudo chmod +x tango_mcc2.service`.
+Check that the paths and are set correctly in the file. Then enable it as a system service by:
 
-## Contributing
-
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
+    sudo systemctl daemon-reload 
+    sudo systemctl start tango_mcc2.service
+    sudo systemctl enable tango_mcc2.service
 
 ## Authors
 
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
+* **Dirk Rohloff**
+* Daniel Schick
 
 
