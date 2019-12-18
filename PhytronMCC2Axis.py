@@ -77,15 +77,29 @@ class PhytronMCC2Axis(Device):
     )
 
     acceleration = attribute(
-        dtype='float',
+        dtype='int',
         label="acceleration",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
 
     frequency_max = attribute(
-        dtype='float',
+        dtype='int',
         label="frequency_max",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+    )
+
+    hold_current = attribute(
+        dtype='int',
+        label="hold current",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+    )
+
+    run_current = attribute(
+        dtype='int',
+        label="run current",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
@@ -113,7 +127,6 @@ class PhytronMCC2Axis(Device):
     __Inverted = False
     __Alias = 'mcc2'
     __Hold_Current = 0
-    __Run_Current = 0
     # other private variables
     __Addr = 0
     __Axis = 0
@@ -207,15 +220,15 @@ class PhytronMCC2Axis(Device):
 
     def read_acceleration(self):
         if (self.__Axis == 0):
-            return (float(self.send_cmd('XP15R')))
+            return (int(self.send_cmd('XP15R')))
         else:
-            return (float(self.send_cmd('YP15R')))
+            return (int(self.send_cmd('YP15R')))
 
     def write_acceleration(self, value):
         if (self.__Axis == 0):
-            self.send_cmd('XP15S{:f}'.format(value))
+            self.send_cmd('XP15S{:d}'.format(value))
         else:
-            self.send_cmd('YP15S{:f}'.format(value))
+            self.send_cmd('YP15S{:d}'.format(value))
 
     def read_frequency_max(self):
         if (self.__Axis == 0):
@@ -225,9 +238,63 @@ class PhytronMCC2Axis(Device):
 
     def write_frequency_max(self, value):
         if (self.__Axis == 0):
-            self.send_cmd('XP14S{:f}'.format(value))
+            self.send_cmd('XP14S{:d}'.format(value))
         else:
-            self.send_cmd('YP14S{:f}'.format(value))
+            self.send_cmd('YP14S{:d}'.format(value))
+
+    def write_run_current(self, value):
+        # motor run current (see manual page 54)
+        if value not in range(1, 26):
+            return 'input not in range 1..25'
+        if (self.__Axis == 0):
+            self.send_cmd('XP41S{:d}'.format(value))
+        else:
+            self.send_cmd('YP41S{:d}'.format(value))
+
+    def read_run_current(self):
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP41R')
+        else:
+            answer = self.send_cmd('YP41R')
+        return int(answer)
+
+    def write_hold_current(self, value):
+        # motor hold current (see manual page 54)
+        if value not in range(1, 26):
+            return 'input not in range 0..25'
+        if (self.__Axis == 0):
+            self.send_cmd('XP40S{:d}'.format(value))
+        else:
+            self.send_cmd('YP40S{:d}'.format(value))
+
+    def read_hold_current(self):
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP40R')
+        else:
+            answer = self.send_cmd('YP40R')
+        return int(answer)
+
+    @command(dtype_in=DevDouble, dtype_out=DevDouble,
+             doc_in="spindle pitch (see manual page 50)",
+             doc_out='the unit')
+    def set_spindle_pitch(self, pitch):
+        if (self.__Axis == 0):
+            self.send_cmd('XP3S{:f}'.format(pitch))
+        else:
+            self.send_cmd('YP3S{:f}'.format(pitch))
+        self.__Pitch = self.get_spindle_pitch()
+        self.set_display_unit()
+        return(self.__Pitch)
+
+    @command(dtype_out=float)
+    def get_spindle_pitch(self):
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP3R')
+        else:
+            answer = self.send_cmd('YP3R')
+        self.__Pitch = float(answer)
+        return float(answer)
+
 
     # commands
     @command(dtype_in=str, dtype_out=str, doc_in='enter a command', doc_out='the answer')
@@ -340,72 +407,10 @@ class PhytronMCC2Axis(Device):
 
         return (self.__Unit)
 
-    @command(dtype_in=DevDouble, dtype_out=DevDouble,
-             doc_in="spindle pitch (see manual page 50)",
-             doc_out='the unit')
-    @DebugIt()
-    def set_spindle_pitch(self, pitch):
-        if (self.__Axis == 0):
-            self.send_cmd('XP3S{:f}'.format(pitch))
-        else:
-            self.send_cmd('YP3S{:f}'.format(pitch))
-        self.__Pitch = self.get_spindle_pitch()
-        self.set_display_unit()
-        return(self.__Pitch)
-
-    @command(dtype_out=float)
-    def get_spindle_pitch(self):
-        if (self.__Axis == 0):
-            answer = self.send_cmd('XP3R')
-        else:
-            answer = self.send_cmd('YP3R')
-        self.__Pitch = float(answer)
-        return float(answer)
-
     @command(dtype_in=str)
     def set_alias(self, mcc_name):
         self.__Alias = mcc_name
         self.db.put_device_property(self.get_name(), {'Alias': mcc_name})
-
-    @command(dtype_in=int, dtype_out=str, doc_in="motor run current (see manual page 54)",)
-    def set_run_current(self, current):
-        if current not in range(1, 26):
-            return 'input not in range 1..25'
-        if (self.__Axis == 0):
-            self.send_cmd('XP41S{:d}'.format(current))
-        else:
-            self.send_cmd('YP41S{:d}'.format(current))
-        self.__Run_Current = self.get_run_current()
-        return str(self.__Run_Current)
-
-    @command(dtype_out=int)
-    def get_run_current(self):
-        if (self.__Axis == 0):
-            answer = self.send_cmd('XP41R')
-        else:
-            answer = self.send_cmd('YP41R')
-        self.__Run_Current = int(answer)
-        return self.__Run_Current
-
-    @command(dtype_in=int, dtype_out=str, doc_in="motor hold current (see manual page 54)",)
-    def set_hold_current(self, current):
-        if current not in range(1, 26):
-            return 'input not in range 0..25'
-        if (self.__Axis == 0):
-            self.send_cmd('XP40S{:d}'.format(current))
-        else:
-            self.send_cmd('YP40S{:d}'.format(current))
-        self.__Hold_Current = self.get_hold_current()
-        return str(self.__Hold_Current)
-
-    @command(dtype_out=int)
-    def get_hold_current(self):
-        if (self.__Axis == 0):
-            answer = self.send_cmd('XP40R')
-        else:
-            answer = self.send_cmd('YP40R')
-        self.__Hold_Current = int(answer)
-        return self.__Hold_Current
 
     def write_to_eeprom(self):
         self.send_cmd('SA')
