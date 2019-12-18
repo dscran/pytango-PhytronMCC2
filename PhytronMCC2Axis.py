@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # coding: utf8
 # PhytronMCC2Axis
-from PyTango import Except, AttrWriteType, DevState, DebugIt, DevDouble, DeviceProxy
+from PyTango import Except, AttrWriteType, DevState, DebugIt, DevDouble, DeviceProxy, DispLevel
 from PyTango.server import run
 from PyTango.server import Device, DeviceMeta, device_property
 from PyTango.server import attribute, command
@@ -13,7 +13,7 @@ flagDebugIO = 0
 
 @six.add_metaclass(DeviceMeta)
 class PhytronMCC2Axis(Device):
-
+    # device properties
     CtrlDevice = device_property(
         dtype='str', default_value=""
     )
@@ -30,43 +30,64 @@ class PhytronMCC2Axis(Device):
         dtype='str', default_value="MCC2"
     )
 
+    # device attributes
     limit_minus = attribute(
         dtype='bool',
         label="Limit -",
-        access=AttrWriteType.READ
+        access=AttrWriteType.READ,
+        display_level=DispLevel.OPERATOR,
     )
 
     limit_plus = attribute(
         dtype='bool',
         label="Limit +",
-        access=AttrWriteType.READ
+        access=AttrWriteType.READ,
+        display_level=DispLevel.OPERATOR,
     )
 
     moving = attribute(
         dtype='bool',
         label="moving",
-        access=AttrWriteType.READ
+        access=AttrWriteType.READ,
+        display_level=DispLevel.OPERATOR,
     )
 
     position = attribute(
         dtype=float,
         format='%8.3f',
-        access=AttrWriteType.READ_WRITE,
         label="position",
-        unit='steps'
+        unit='steps',
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.OPERATOR,
     )
 
     alias = attribute(
         dtype='string',
-        access=AttrWriteType.READ,
         label="alias",
+        access=AttrWriteType.READ,
+        display_level=DispLevel.OPERATOR,
     )
 
     inverted = attribute(
         dtype='bool',
-        access=AttrWriteType.READ_WRITE,
         label="inverted",
-        memorized=True
+        memorized=True,
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+    )
+
+    acceleration = attribute(
+        dtype='float',
+        label="acceleration",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+    )
+
+    frequency_max = attribute(
+        dtype='float',
+        label="frequency_max",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
     )
 
 
@@ -153,6 +174,7 @@ class PhytronMCC2Axis(Device):
             ac.format = '%8.3f'
         self.set_attribute_config_3(ac)
 
+    # attribute read/write methods
     def read_limit_minus(self):
         return self.__Limit_Minus
 
@@ -164,9 +186,6 @@ class PhytronMCC2Axis(Device):
 
     def read_position(self):
         return (self.__Pos)
-
-    def read_inverted(self):
-        return (self.__Inverted)
 
     def write_position(self, value):
         if (self.__Axis == 0):
@@ -180,9 +199,37 @@ class PhytronMCC2Axis(Device):
     def read_alias(self):
         return self.Alias
 
+    def read_inverted(self):
+        return (self.__Inverted)
+
     def write_inverted(self, value):
         self.__Inverted = bool(value)
 
+    def read_acceleration(self):
+        if (self.__Axis == 0):
+            return (float(self.send_cmd('XP15R')))
+        else:
+            return (float(self.send_cmd('YP15R')))
+
+    def write_acceleration(self, value):
+        if (self.__Axis == 0):
+            self.send_cmd('XP15S{:f}'.format(value))
+        else:
+            self.send_cmd('YP15S{:f}'.format(value))
+
+    def read_frequency_max(self):
+        if (self.__Axis == 0):
+            return (int(self.send_cmd('XP14R')))
+        else:
+            return (int(self.send_cmd('YP14R')))
+
+    def write_frequency_max(self, value):
+        if (self.__Axis == 0):
+            self.send_cmd('XP14S{:f}'.format(value))
+        else:
+            self.send_cmd('YP14S{:f}'.format(value))
+
+    # commands
     @command(dtype_in=str, dtype_out=str, doc_in='enter a command', doc_out='the answer')
     def send_cmd(self, cmd):
         # building the string to send it
@@ -226,36 +273,7 @@ class PhytronMCC2Axis(Device):
         if self.__Moving is False:
             self.set_state(DevState.ON)
 
-    @command(dtype_out=int, doc_out='get acceleration')
-    def get_accel(self):
-        if (self.__Axis == 0):
-            return (int(self.send_cmd('XP15R')))
-        else:
-            return (int(self.send_cmd('YP15R')))
-
-    @command(dtype_in=int, doc_out='set acceleration')
-    def set_accel(self, Acceleration):
-        if (self.__Axis == 0):
-            self.send_cmd('XP15S{:f}'.format(Acceleration))
-        else:
-            self.send_cmd('YP15S{:f}'.format(Acceleration))
-
-    @command(dtype_out=int, doc_out='get fmax.')
-    def get_f_max(self):
-        if (self.__Axis == 0):
-            return (int(self.send_cmd('XP14R')))
-        else:
-            return (int(self.send_cmd('YP14R')))
-
-    @command(dtype_in=int, doc_out='set fmax.')
-    def set_f_max(self, F_Max):
-        if (self.__Axis == 0):
-            self.send_cmd('XP14S{:f}'.format(F_Max))
-        else:
-            self.send_cmd('YP14S{:f}'.format(F_Max))
-
     @command
-    @DebugIt()
     def Jog_Plus(self):
         if (self.__Axis == 0):
             self.send_cmd('XL+')
@@ -263,7 +281,6 @@ class PhytronMCC2Axis(Device):
             self.send_cmd('YL+')
 
     @command
-    @DebugIt()
     def Jog_Minus(self):
         self.__Last_Read = 0  # Zuruecksetzen
         if (self.__Axis == 0):
@@ -272,7 +289,6 @@ class PhytronMCC2Axis(Device):
             self.send_cmd('YL-')
 
     @command
-    @DebugIt()
     def Homing_Plus(self):
         self.__Last_Read = 0    # Zuruecksetzen
         if (self.__Axis == 0):
@@ -281,7 +297,6 @@ class PhytronMCC2Axis(Device):
             self.send_cmd('Y0+')
 
     @command
-    @DebugIt()
     def Homing_Minus(self):
         if (self.__Axis == 0):
             self.send_cmd('X0-')
@@ -289,7 +304,6 @@ class PhytronMCC2Axis(Device):
             self.send_cmd('Y0-')
 
     @command
-    @DebugIt()
     def Stop(self):
         if (self.__Axis == 0):
             self.send_cmd('XS')
@@ -299,7 +313,6 @@ class PhytronMCC2Axis(Device):
 
     @command(dtype_in=str, dtype_out=str, doc_in="step\nmm\ninch\ndegree",
              doc_out='the unit')
-    @DebugIt()
     def set_movement_unit(self, unit):
         if str.lower(unit) in self.__MOVE_UNIT:
             self.__Unit = str.lower(unit)
