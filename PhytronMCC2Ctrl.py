@@ -32,7 +32,7 @@ class PhytronMCC2Ctrl(Device):
     )
 
     baudrate = attribute(
-        dtype='int',
+        dtype='int16',
         label="baudrate",
         access=AttrWriteType.READ,
         display_level=DispLevel.OPERATOR,
