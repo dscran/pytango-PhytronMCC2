@@ -15,11 +15,11 @@ flagDebugIO = 0
 @six.add_metaclass(DeviceMeta)
 class PhytronMCC2Ctrl(Device):
     # device properties
-    port = device_property(
+    Port = device_property(
         dtype='str', default_value="/dev/ttyMCC"
     )
 
-    baudrate = device_property(
+    Baudrate = device_property(
         dtype='int16', default_value="115200"
     )
     
@@ -51,12 +51,12 @@ class PhytronMCC2Ctrl(Device):
         self.configure = True
         self.serial = serial.Serial()
 
-        self.serial.baudrate = self.baudrate
-        self.serial.port = self.port
+        self.serial.baudrate = self.Baudrate
+        self.serial.port = self.Port
 
         if flagDebugIO:
-            print("PhytronMCC2Ctrl.init_device: port = %s " % self.port)
-            print("PhytronMCC2Ctrl.init_device: baudrate = %s " % self.baudrate)
+            print("PhytronMCC2Ctrl.init_device: port = %s " % self.Port)
+            print("PhytronMCC2Ctrl.init_device: baudrate = %s " % self.Baudrate)
 
         self.bytesize = 8
         self.serial.bytesize = self.bytesize
@@ -87,10 +87,10 @@ class PhytronMCC2Ctrl(Device):
 
     # attribute read/write methods
     def read_port(self):
-        return self.port
+        return self.Port
 
     def read_baudrate(self):
-        return self.baudrate
+        return self.Baudrate
 
     # commands
     @command
@@ -98,8 +98,8 @@ class PhytronMCC2Ctrl(Device):
         self.info_stream("In %s::open()" % self.get_name())
 
         if self.configure:
-            self.serial.baudrate = self.baudrate
-            self.serial.port = self.port
+            self.serial.baudrate = self.Baudrate
+            self.serial.port = self.Port
             self.serial.bytesize = self.bytesize
             self.serial.stopbits = self.stopbits
 
@@ -132,11 +132,11 @@ class PhytronMCC2Ctrl(Device):
             self.set_state(DevState.ON)
             self.configure = False
         except Exception:
-            print("PhytronMcc2Ctrl.open: failed to open %s " % self.port)
+            print("PhytronMcc2Ctrl.open: failed to open %s " % self.Port)
             sys.exit(255)
 
         if flagDebugIO:
-            print("PhytronMcc2Ctrl.open: connected to %s " % self.port)
+            print("PhytronMcc2Ctrl.open: connected to %s " % self.Port)
 
     def is_open_allowed(self):
         if self.get_state() in [DevState.ON, DevState.FAULT]:
