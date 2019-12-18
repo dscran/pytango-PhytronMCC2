@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # coding: utf8
 # PhytronMCC2Axis
-from PyTango import Except, AttrWriteType, DevState, DebugIt, DevDouble, DeviceProxy, DispLevel
+from PyTango import Except, AttrWriteType, DevState, DeviceProxy, DispLevel
 from PyTango.server import run
 from PyTango.server import Device, DeviceMeta, device_property
 from PyTango.server import attribute, command
@@ -104,6 +104,12 @@ class PhytronMCC2Axis(Device):
         display_level=DispLevel.EXPERT,
     )
 
+    conversion_factor = attribute(
+        dtype='float',
+        label="conversion factor",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+    )
 
     # definition some constants
     __STX = chr(2)         # Start of text
@@ -116,7 +122,7 @@ class PhytronMCC2Axis(Device):
     __REG_SPINDLE = 'P3'   # Register of spindle pitch (Spindelsteigung)
     __MOVE_UNIT = ("step", "mm", "inch", "degree")
     __SPINDLE = 1.0
-    __DISPL_UNIT = ("steps", "mm", "inch", "degree")
+    __DISPL_UNIT = ("step", "mm", "inch", "degree")
     __MOVE = 1
     __LIM_PLUS = 2
     __LIM_MINUS = 1
@@ -126,13 +132,12 @@ class PhytronMCC2Axis(Device):
     __Moving = False
     __Inverted = False
     __Alias = 'mcc2'
-    __Hold_Current = 0
     # other private variables
     __Addr = 0
     __Axis = 0
     __Pos = 0
     __Unit = 'step'
-    __Pitch = 1.0
+    __Conv_Factor = 1.0
     __I = 0
 
     def init_device(self):
@@ -181,7 +186,7 @@ class PhytronMCC2Axis(Device):
     def set_display_unit(self):
         ac = self.get_attribute_config_3('position')[0]
         ac.unit = self.__Unit
-        if (self.__Pitch % 1) == 0.0:
+        if (self.__Conv_Factor % 1) == 0.0:
             ac.format = '%8d'
         else:
             ac.format = '%8.3f'
@@ -220,9 +225,9 @@ class PhytronMCC2Axis(Device):
 
     def read_acceleration(self):
         if (self.__Axis == 0):
-            return (int(self.send_cmd('XP15R')))
+            return int(self.send_cmd('XP15R'))
         else:
-            return (int(self.send_cmd('YP15R')))
+            return int(self.send_cmd('YP15R'))
 
     def write_acceleration(self, value):
         if (self.__Axis == 0):
@@ -232,15 +237,22 @@ class PhytronMCC2Axis(Device):
 
     def read_frequency_max(self):
         if (self.__Axis == 0):
-            return (int(self.send_cmd('XP14R')))
+            return int(self.send_cmd('XP14R'))
         else:
-            return (int(self.send_cmd('YP14R')))
+            return int(self.send_cmd('YP14R'))
 
     def write_frequency_max(self, value):
         if (self.__Axis == 0):
             self.send_cmd('XP14S{:d}'.format(value))
         else:
             self.send_cmd('YP14S{:d}'.format(value))
+
+    def read_run_current(self):
+        if (self.__Axis == 0):
+            answer = self.send_cmd('XP41R')
+        else:
+            answer = self.send_cmd('YP41R')
+        return int(answer)
 
     def write_run_current(self, value):
         # motor run current (see manual page 54)
@@ -251,11 +263,11 @@ class PhytronMCC2Axis(Device):
         else:
             self.send_cmd('YP41S{:d}'.format(value))
 
-    def read_run_current(self):
+    def read_hold_current(self):
         if (self.__Axis == 0):
-            answer = self.send_cmd('XP41R')
+            answer = self.send_cmd('XP40R')
         else:
-            answer = self.send_cmd('YP41R')
+            answer = self.send_cmd('YP40R')
         return int(answer)
 
     def write_hold_current(self, value):
@@ -267,34 +279,23 @@ class PhytronMCC2Axis(Device):
         else:
             self.send_cmd('YP40S{:d}'.format(value))
 
-    def read_hold_current(self):
-        if (self.__Axis == 0):
-            answer = self.send_cmd('XP40R')
-        else:
-            answer = self.send_cmd('YP40R')
-        return int(answer)
-
-    @command(dtype_in=DevDouble, dtype_out=DevDouble,
-             doc_in="spindle pitch (see manual page 50)",
-             doc_out='the unit')
-    def set_spindle_pitch(self, pitch):
-        if (self.__Axis == 0):
-            self.send_cmd('XP3S{:f}'.format(pitch))
-        else:
-            self.send_cmd('YP3S{:f}'.format(pitch))
-        self.__Pitch = self.get_spindle_pitch()
-        self.set_display_unit()
-        return(self.__Pitch)
-
-    @command(dtype_out=float)
-    def get_spindle_pitch(self):
+    def read_conversion_factor(self):
+        # spindle pitch (see manual page 50)
         if (self.__Axis == 0):
             answer = self.send_cmd('XP3R')
         else:
             answer = self.send_cmd('YP3R')
-        self.__Pitch = float(answer)
-        return float(answer)
+        self.__Conv_Factor = float(answer)
+        return self.__Conv_Factor
 
+    def write_conversion_factor(self, value):
+        # spindle pitch (see manual page 50)
+        if (self.__Axis == 0):
+            self.send_cmd('XP3S{:f}'.format(value))
+        else:
+            self.send_cmd('YP3S{:f}'.format(value))
+        # update display unit
+        self.set_display_unit()
 
     # commands
     @command(dtype_in=str, dtype_out=str, doc_in='enter a command', doc_out='the answer')
