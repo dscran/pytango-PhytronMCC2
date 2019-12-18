@@ -201,6 +201,17 @@ class PhytronMCC2Axis(Device):
             ac.format = '%8.3f'
         self.set_attribute_config_3(ac)
 
+    def get_pos(self):
+        if (self.__Axis == 0):
+            tmp = self.send_cmd('X' + self.__REG_STEP_CNT + 'R')
+        else:
+            tmp = self.send_cmd('Y' + self.__REG_STEP_CNT + 'R')
+        if self.__Inverted:
+            self.__Pos = -1*float(tmp)
+        else:
+            self.__Pos = float(tmp)
+        return (self.__Pos)
+
     # attribute read/write methods
     def read_limit_minus(self):
         return self.__Limit_Minus
@@ -331,17 +342,14 @@ class PhytronMCC2Axis(Device):
         version = self.send_cmd('IVR')
         return (version)
 
-    @command(dtype_out=float, doc_out='position')
-    def get_pos(self):
-        if (self.__Axis == 0):
-            tmp = self.send_cmd('X' + self.__REG_STEP_CNT + 'R')
-        else:
-            tmp = self.send_cmd('Y' + self.__REG_STEP_CNT + 'R')
+    @command(dtype_in=float, doc_in='position')
+    def set_pos(self, value):
         if self.__Inverted:
-            self.__Pos = -1*float(tmp)
+            value = -1*value
+        if (self.__Axis == 0):
+            self.send_cmd('X' + self.__REG_STEP_CNT + 'S{:.4f}'.format(value))
         else:
-            self.__Pos = float(tmp)
-        return (self.__Pos)
+            self.send_cmd('Y' + self.__REG_STEP_CNT + 'S{:.4f}'.format(value))
 
     @command(polling_period=200, doc_out='state of limits and moving')
     def get_mcc_state(self):
