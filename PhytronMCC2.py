@@ -9,16 +9,15 @@ TANGO_HOST = os.environ['TANGO_HOST']
 print('Check TANGO_HOST: {:s}'.format(TANGO_HOST))
 
 db = Database()
-if db.check_tango_host(TANGO_HOST) == None:
+if db.check_tango_host(TANGO_HOST) is None:
     print('TANGO_HOST format is okay')
 else:
     print('TANGO_HOST format is bad')
 
-
 print('Check connection to TANGO database')
 try:
     print(db.get_info())
-except e as Exception:
+except Exception:
     print('Could not connect to TANGO database')
     exit(255)
 
