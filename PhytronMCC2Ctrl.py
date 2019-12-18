@@ -1,8 +1,8 @@
 #!/usr/bin/python -u
 # coding: utf8
 # PhytronMCC2Ctrl
-from PyTango import DevState, DevVarCharArray, DevUShort, DevUChar
-from PyTango.server import Device, DeviceMeta, command, device_property, run
+from PyTango import DevState, DevVarCharArray, DevUShort, DevUChar, AttrWriteType, DispLevel
+from PyTango.server import Device, DeviceMeta, attribute, command, device_property, run
 import time
 import sys
 import serial
@@ -14,14 +14,28 @@ flagDebugIO = 0
 
 @six.add_metaclass(DeviceMeta)
 class PhytronMCC2Ctrl(Device):
-
-    # Device Properties
+    # device properties
     port = device_property(
         dtype='str', default_value="/dev/ttyMCC"
     )
 
     baudrate = device_property(
         dtype='int16', default_value="115200"
+    )
+    
+    # device attributes
+    port = attribute(
+        dtype='str',
+        label="port",
+        access=AttrWriteType.READ,
+        display_level=DispLevel.OPERATOR,
+    )
+
+    baudrate = attribute(
+        dtype='int',
+        label="baudrate",
+        access=AttrWriteType.READ,
+        display_level=DispLevel.OPERATOR,
     )
 
     PARITIES = ["none", "odd", "even"]
@@ -71,6 +85,14 @@ class PhytronMCC2Ctrl(Device):
     def always_executed_hook(self):
         self.info_stream("In %s::always_excuted_hook()" % self.get_name())
 
+    # attribute read/write methods
+    def read_port(self):
+        return self.port
+
+    def read_baudrate(self):
+        return self.baudrate
+
+    # commands
     @command
     def open(self):
         self.info_stream("In %s::open()" % self.get_name())
