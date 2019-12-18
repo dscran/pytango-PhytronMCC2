@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # coding: utf8
 # PhytronMCC2Axis
-from PyTango import Except, AttrWriteType, DevState, DeviceProxy, DispLevel
+from PyTango import Database, Except, AttrWriteType, DevState, DeviceProxy, DispLevel
 from PyTango.server import run
 from PyTango.server import Device, DeviceMeta, device_property
 from PyTango.server import attribute, command
@@ -166,7 +166,8 @@ class PhytronMCC2Axis(Device):
             self.ctrl.open()
 
         if ("MCC" in self.read_firmware_version()):
-            self.__Inverted = self.get_device_attribute_property(self.get_name() + 'Inverted',['__value'])
+            db = Database()
+            self.__Inverted = db.get_device_attribute_property(self.get_name() + 'Inverted',['__value'])
             self.get_mcc_state()
             self.read_position()
             self.read_conversion_factor()
