@@ -1,33 +1,6 @@
 #!/usr/bin/python -u
 # coding: utf8
-# Phytron MotorDevice
-# 17.10. 1. first test in the Lab, Definition of improvements/changes
-# Changes:
-# ------------
-# 18.10.
-# modules are still subdivided according to axes
-# Changes:
-# -------------
-# Device: hhg/MCC2/0.0
-# means: first number is the address of the module
-#        second number is the number of motor
-# in this example: Rs485-address = 0, motor: 0 (upper plug)
-# or  device: hhg/MCC2/1.1 means: module 2, motor 1 (lower plug)
-#
-# 19.10.
-# acceleration and max. frequenz are implemantet as commands
-#
-# 6.11.
-# added movement_unit:
-#  - steps, mm, zoll, degree
-# added spindle_pitch
-#  - pitch of spindle (Spindelsteigung siehe Handbuch Seite 50)
-# changing attribute "my_state" in command and the name from "my_state" to
-# "mcc_state"
-#
-# 8.11.
-# added set_display_unit
-
+# PhytronMCC2Axis
 from PyTango import Except, AttrWriteType, DevState, DebugIt, DevDouble, DeviceProxy
 from PyTango.server import run
 from PyTango.server import Device, DeviceMeta, device_property
@@ -57,6 +30,46 @@ class PhytronMCC2Axis(Device):
         dtype='str', default_value="MCC2"
     )
 
+    limit_minus = attribute(
+        dtype='bool',
+        label="Limit -",
+        access=AttrWriteType.READ
+    )
+
+    limit_plus = attribute(
+        dtype='bool',
+        label="Limit +",
+        access=AttrWriteType.READ
+    )
+
+    moving = attribute(
+        dtype='bool',
+        label="moving",
+        access=AttrWriteType.READ
+    )
+
+    position = attribute(
+        dtype=float,
+        format='%8.3f',
+        access=AttrWriteType.READ_WRITE,
+        label="position",
+        unit='steps'
+    )
+
+    alias = attribute(
+        dtype='string',
+        access=AttrWriteType.READ,
+        label="alias",
+    )
+
+    inverted = attribute(
+        dtype='bool',
+        access=AttrWriteType.READ_WRITE,
+        label="inverted",
+        memorized=True
+    )
+
+
     # definition some constants
     __STX = chr(2)         # Start of text
     __ACK = chr(6)         # Command ok
@@ -75,7 +88,8 @@ class PhytronMCC2Axis(Device):
     # private status variables, updated by "mcc_state()"
     __Limit_Minus = False
     __Limit_Plus = False
-    __Motor_Run = False
+    __Moving = False
+    __Inverted = False
     __Alias = 'mcc2'
     __Hold_Current = 0
     __Run_Current = 0
@@ -124,37 +138,8 @@ class PhytronMCC2Axis(Device):
         if flagDebugIO:
             print("PhytronMCCAxis2.init_device: Limit- = %s" % self.__Limit_Minus)
             print("PhytronMCCAxis2.init_device: Limit+ = %s " % self.__Limit_Plus)
-            print("PhytronMCCAxis2.init_device: Run = %s" % self.__Motor_Run)
+            print("PhytronMCCAxis2.init_device: Moving = %s" % self.__Moving)
             print("PhytronMCCAxis2.init_device: Postion %s" % self.__Pos)
-
-    limit_minus = attribute(
-        dtype='bool',
-        label="Limit -",
-    )
-
-    limit_plus = attribute(
-        dtype='bool',
-        label="Limit +",
-    )
-
-    run = attribute(
-        dtype='bool',
-        label="motor running",
-    )
-
-    position = attribute(
-        dtype=float,
-        format='%8.3f',
-        access=AttrWriteType.READ_WRITE,
-        label="position",
-        unit='steps'
-    )
-
-    alias = attribute(
-        dtype='string',
-        access=AttrWriteType.READ,
-        label="alias",
-    )
 
     def delete_device(self):
         self.set_state(DevState.OFF)
@@ -174,11 +159,14 @@ class PhytronMCC2Axis(Device):
     def read_limit_plus(self):
         return self.__Limit_Plus
 
-    def read_run(self):
-        return self.__Motor_Run
+    def read_moving(self):
+        return self.__Moving
 
     def read_position(self):
         return (self.__Pos)
+
+    def read_inverted(self):
+        return (self.__Inverted)
 
     def write_position(self, value):
         if (self.__Axis == 0):
@@ -187,10 +175,13 @@ class PhytronMCC2Axis(Device):
             answer = self.send_cmd('YA{:.4f}'.format(value))
         if answer != self.__NACK:
             self.set_state(DevState.MOVING)
-            self.__Motor_Run = True
+            self.__Moving = True
 
     def read_alias(self):
         return self.Alias
+
+    def write_inverted(self, value):
+        self.__Inverted = bool(value)
 
     @command(dtype_in=str, dtype_out=str, doc_in='enter a command', doc_out='the answer')
     def send_cmd(self, cmd):
@@ -227,12 +218,12 @@ class PhytronMCC2Axis(Device):
         if (self.__Axis == 0):
             self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
             self.__Limit_Plus = bool(int(answer[2]) & self.__LIM_PLUS)
-            self.__Motor_Run = not(bool(int(answer[1]) & self.__MOVE))
+            self.__Moving = not(bool(int(answer[1]) & self.__MOVE))
         else:
             self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_MINUS)
             self.__Limit_Plus = bool(int(answer[6]) & self.__LIM_PLUS)
-            self.__Motor_Run = not(bool(int(answer[5]) & self.__MOVE))
-        if self.__Motor_Run is False:
+            self.__Moving = not(bool(int(answer[5]) & self.__MOVE))
+        if self.__Moving is False:
             self.set_state(DevState.ON)
 
     @command(dtype_out=int, doc_out='get acceleration')
@@ -403,7 +394,6 @@ class PhytronMCC2Axis(Device):
         self.__Hold_Current = int(answer)
         return self.__Hold_Current
 
-    @command(dtype_out=str)
     def write_to_eeprom(self):
         self.send_cmd('SA')
         return 'parameter written to flash memory'
