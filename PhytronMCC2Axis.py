@@ -169,7 +169,10 @@ class PhytronMCC2Axis(Device):
             # read memorized attributes from Database
             db = Database()
             attr = db.get_device_attribute_property(self.get_name(), ['inverted'])
-            self.__Inverted = attr['inverted']['__value'][0]
+            if attr['inverted']['__value'][0] == 'true':
+		self.__Inverted = True
+	    else:
+		self.__Inverted = False
             # read controller variables
             self.get_mcc_state()
             self.read_position()
