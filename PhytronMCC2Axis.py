@@ -106,7 +106,7 @@ class PhytronMCC2Axis(Device):
 
     conversion_factor = attribute(
         dtype='float',
-	format='%10.8f',
+        format='%10.8f',
         label="conversion factor",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
@@ -166,6 +166,7 @@ class PhytronMCC2Axis(Device):
             self.ctrl.open()
 
         if ("MCC" in self.read_firmware_version()):
+            self.__Inverted = self.get_device_attribute_property(self.get_name() + 'Inverted',['__value'])
             self.get_mcc_state()
             self.read_position()
             self.read_conversion_factor()
@@ -226,9 +227,10 @@ class PhytronMCC2Axis(Device):
 
     def read_acceleration(self):
         if (self.__Axis == 0):
-            return int(self.send_cmd('XP15R'))
+            answer = self.send_cmd('XP15R')
         else:
-            return int(self.send_cmd('YP15R'))
+            answer = self.send_cmd('YP15R')
+        return int(answer)
 
     def write_acceleration(self, value):
         if (self.__Axis == 0):
@@ -238,9 +240,10 @@ class PhytronMCC2Axis(Device):
 
     def read_frequency_max(self):
         if (self.__Axis == 0):
-            return int(self.send_cmd('XP14R'))
+            answer = self.send_cmd('XP14R')
         else:
-            return int(self.send_cmd('YP14R'))
+            answer = self.send_cmd('YP14R')
+        return int(answer)
 
     def write_frequency_max(self, value):
         if (self.__Axis == 0):
