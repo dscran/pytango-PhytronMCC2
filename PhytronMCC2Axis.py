@@ -168,10 +168,13 @@ class PhytronMCC2Axis(Device):
         if ("MCC" in self.read_firmware_version()):
             # read memorized attributes from Database
             db = Database()
-            attr = db.get_device_attribute_property(self.get_name(), ['inverted'])
-            if attr['inverted']['__value'][0] == 'true':
-                self.__Inverted = True
-            else:
+            try:
+                attr = db.get_device_attribute_property(self.get_name(), ['inverted'])
+                if attr['inverted']['__value'][0] == 'true':
+                    self.__Inverted = True
+                else:
+                    self.__Inverted = False
+            except Exception:
                 self.__Inverted = False
             # read controller variables
             self.get_mcc_state()
@@ -467,6 +470,7 @@ class PhytronMCC2Axis(Device):
         self.__Alias = mcc_name
         self.db.put_device_property(self.get_name(), {'Alias': mcc_name})
 
+    @command
     def write_to_eeprom(self):
         self.send_cmd('SA')
         return 'parameter written to flash memory'
