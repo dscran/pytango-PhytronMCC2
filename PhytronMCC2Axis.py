@@ -95,7 +95,7 @@ class PhytronMCC2Axis(Device):
         unit='A',
         min_value=0,
         max_value=2.5,
-        format='2.1f',        
+        format='%2.1f',        
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
@@ -106,7 +106,7 @@ class PhytronMCC2Axis(Device):
         unit='A',
         min_value=0,
         max_value=2.5,
-        format='2.1f',
+        format='%2.1f',
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
