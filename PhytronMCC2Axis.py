@@ -177,11 +177,11 @@ class PhytronMCC2Axis(Device):
             except Exception:
                 self.__Inverted = False
             # read controller variables
-            self.get_mcc_state()
-            self.read_position()
-            self.read_step_per_unit()
-            self.get_movement_unit()
-            self.set_display_unit()
+            #self.get_mcc_state()
+            #self.read_position()
+            #self.read_step_per_unit()
+            #self.get_movement_unit()
+            #self.set_display_unit()
             self.set_state(DevState.ON)
         else:
             self.set_state(DevState.OFF)
@@ -193,6 +193,29 @@ class PhytronMCC2Axis(Device):
 
     def delete_device(self):
         self.set_state(DevState.OFF)
+
+    def dev_state(self):
+        answer = self.send_cmd('SE')
+        if (self.__Axis == 0):
+            if self.__Inverted:
+                self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_PLUS)
+                self.__Limit_Plus = bool(int(answer[2]) & self.__LIM_MINUS)
+            else:
+                self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
+                self.__Limit_Plus = bool(int(answer[2]) & self.__LIM_PLUS)
+            moving = not(bool(int(answer[1]) & self.__MOVE))
+        else:
+            if self.__Inverted:
+                self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_PLUS)
+                self.__Limit_Plus = bool(int(answer[6]) & self.__LIM_MINUS)
+            else:
+                self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_MINUS)
+                self.__Limit_Plus = bool(int(answer[6]) & self.__LIM_PLUS)
+            moving = not(bool(int(answer[5]) & self.__MOVE))
+        if moving is False:
+            return DevState.ON
+        else:
+            return DevState.MOVING
 
     def set_display_unit(self):
         ac = self.get_attribute_config_3('position')[0]
@@ -222,7 +245,7 @@ class PhytronMCC2Axis(Device):
         return self.__Limit_Plus
 
     def read_position(self):
-        return (self.__Pos)
+        return self.get_position()
 
     def write_position(self, value):
         if self.__Inverted:
@@ -350,31 +373,6 @@ class PhytronMCC2Axis(Device):
         else:
             self.send_cmd('Y' + self.__REG_STEP_CNT + 'S{:.4f}'.format(value))
 
-    @command(polling_period=200, doc_out='state of limits and moving')
-    def get_mcc_state(self):
-        self.get_position()
-        answer = self.send_cmd('SE')
-        if (self.__Axis == 0):
-            if self.__Inverted:
-                self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_PLUS)
-                self.__Limit_Plus = bool(int(answer[2]) & self.__LIM_MINUS)
-            else:
-                self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
-                self.__Limit_Plus = bool(int(answer[2]) & self.__LIM_PLUS)
-            moving = not(bool(int(answer[1]) & self.__MOVE))
-        else:
-            if self.__Inverted:
-                self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_PLUS)
-                self.__Limit_Plus = bool(int(answer[6]) & self.__LIM_MINUS)
-            else:
-                self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_MINUS)
-                self.__Limit_Plus = bool(int(answer[6]) & self.__LIM_PLUS)
-            moving = not(bool(int(answer[5]) & self.__MOVE))
-        if moving is False:
-            self.set_state(DevState.ON)
-        else:
-            self.set_state(DevState.MOVING)
-
     @command
     def Jog_Plus(self):
         if (self.__Axis == 0):
@@ -390,7 +388,7 @@ class PhytronMCC2Axis(Device):
 
     @command
     def Jog_Minus(self):
-        self.__Last_Read = 0  # Zuruecksetzen
+        self.__Last_Read = 0  # Reset
         if (self.__Axis == 0):
             if self.__Inverted:
                 self.send_cmd('XL+')
@@ -404,7 +402,7 @@ class PhytronMCC2Axis(Device):
 
     @command
     def Homing_Plus(self):
-        self.__Last_Read = 0    # Zuruecksetzen
+        self.__Last_Read = 0    # Reset
         if (self.__Axis == 0):
             if self.__Inverted:
                 self.send_cmd('X0-')
