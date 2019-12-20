@@ -147,8 +147,8 @@ class PhytronMCC2Axis(Device):
         self.__Axis = self.Axis
         self.__Alias = self.Alias
 
-        if self.__Addr == 0:
-            self._Axis_Name = 'X'
+        if self.__Axis == 0:
+            self.__Axis_Name = 'X'
         else:
             self.__Axis_Name = 'Y'
 
@@ -200,7 +200,7 @@ class PhytronMCC2Axis(Device):
             else:
                 self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
                 self.__Limit_Plus = bool(int(answer[2]) & self.__LIM_PLUS)
-            moving = not(bool(int(answer[1])))
+            moving = not(bool(int(answer[1]) & 1))
         else:
             if self.__Inverted:
                 self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_PLUS)
@@ -208,16 +208,18 @@ class PhytronMCC2Axis(Device):
             else:
                 self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_MINUS)
                 self.__Limit_Plus = bool(int(answer[6]) & self.__LIM_PLUS)
-            moving = not(bool(int(answer[5])))
+            moving = not(bool(int(answer[5]) & 1))
         if moving is False:
+            self.set_status('Device in ON')
             return DevState.ON
         else:
+            self.set_status('Device is MOVING')
             return DevState.MOVING
 
     def set_display_unit(self):
         ac = self.get_attribute_config_3('position')[0]
         ac.unit = self.__Unit
-        if (self.__Conv_Factor % 1) == 0.0:
+        if (self.__Step_Per_Unit % 1) == 0.0:
             ac.format = '%8d'
         else:
             ac.format = '%8.3f'
@@ -231,7 +233,7 @@ class PhytronMCC2Axis(Device):
         return self.__Limit_Plus
 
     def read_position(self):
-        ret = self.send_cmd(self._Axis_Name + 'P20R')
+        ret = self.send_cmd(self.__Axis_Name + 'P20R')
         if self.__Inverted:
             return -1*float(ret)
         else:
@@ -240,7 +242,7 @@ class PhytronMCC2Axis(Device):
     def write_position(self, value):
         if self.__Inverted:
             value = -1*value
-        answer = self.send_cmd(self._Axis_Name + 'A{:.4f}'.format(value))
+        answer = self.send_cmd(self.__Axis_Name + 'A{:.4f}'.format(value))
         if answer != self.__NACK:
             self.set_state(DevState.MOVING)
 
@@ -254,44 +256,45 @@ class PhytronMCC2Axis(Device):
         self.__Inverted = bool(value)
 
     def read_acceleration(self):
-        return int(self.send_cmd(self._Axis_Name + 'P15R'))
+        return int(self.send_cmd(self.__Axis_Name + 'P15R'))
 
     def write_acceleration(self, value):
-        self.send_cmd(self._Axis_Name + 'P15S{:d}'.format(value))
+        self.send_cmd(self.__Axis_Name + 'P15S{:d}'.format(value))
 
     def read_velocity(self):
-        return int(self.send_cmd(self._Axis_Name + 'P14R'))
+        return int(self.send_cmd(self.__Axis_Name + 'P14R'))
 
     def write_velocity(self, value):
-        self.send_cmd(self._Axis_Name + 'P14S{:d}'.format(value))
+        self.send_cmd(self.__Axis_Name + 'P14S{:d}'.format(value))
 
     def read_run_current(self):
-        return float(self.send_cmd(self._Axis_Name + 'P41R'))/10
+        return float(self.send_cmd(self.__Axis_Name + 'P41R'))/10
 
     def write_run_current(self, value):
         # motor run current (see manual page 54)
         value = int(value*10)
         if value not in range(1, 26):
             return 'input not in range 1..25'
-        self.send_cmd(self._Axis_Name + 'P41S{:d}'.format(value))
+        self.send_cmd(self.__Axis_Name + 'P41S{:d}'.format(value))
 
     def read_hold_current(self):
-        return float(self.send_cmd(self._Axis_Name + 'P40R'))/10
+        return float(self.send_cmd(self.__Axis_Name + 'P40R'))/10
 
     def write_hold_current(self, value):
         # motor hold current (see manual page 54)
         value = int(value*10)
         if value not in range(1, 26):
             return 'input not in range 0..25'
-        self.send_cmd(self._Axis_Name + 'P40S{:d}'.format(value))
+        self.send_cmd(self.__Axis_Name + 'P40S{:d}'.format(value))
 
     def read_step_per_unit(self):
         # spindle pitch (see manual page 50)
-        return self.send_cmd(self._Axis_Name + 'P3R')
+        self.__Step_Per_Unit = float(self.send_cmd(self.__Axis_Name + 'P3R'))
+        return self.__Step_Per_Unit
 
     def write_step_per_unit(self, value):
         # spindle pitch (see manual page 50)
-        self.send_cmd(self._Axis_Name + 'P3S{:f}'.format(value))
+        self.send_cmd(self.__Axis_Name + 'P3S{:f}'.format(value))
         # update display unit
         self.set_display_unit()
 
@@ -318,39 +321,44 @@ class PhytronMCC2Axis(Device):
     def set_position(self, value):
         if self.__Inverted:
             value = -1*value
-        self.send_cmd(self._Axis_Name + 'P20S{:.4f}'.format(value))
+        self.send_cmd(self.__Axis_Name + 'P20S{:.4f}'.format(value))
 
     @command
     def Jog_Plus(self):
         if self.__Inverted:
-            self.send_cmd(self._Axis_Name + 'L-')
+            self.send_cmd(self.__Axis_Name + 'L-')
         else:
-            self.send_cmd(self._Axis_Name + 'L+')
+            self.send_cmd(self.__Axis_Name + 'L+')
+        self.set_state(DevState.MOVING)
 
     @command
     def Jog_Minus(self):
         if self.__Inverted:
-            self.send_cmd(self._Axis_Name + 'L+')
+            self.send_cmd(self.__Axis_Name + 'L+')
         else:
-            self.send_cmd(self._Axis_Name + 'L-')
+            self.send_cmd(self.__Axis_Name + 'L-')
+        self.set_state(DevState.MOVING)
 
     @command
     def Homing_Plus(self):
         if self.__Inverted:
-            self.send_cmd(self._Axis_Name + '0-')
+            self.send_cmd(self.__Axis_Name + '0-')
         else:
-            self.send_cmd(self._Axis_Name + '0+')
+            self.send_cmd(self.__Axis_Name + '0+')
+        self.set_state(DevState.MOVING)
 
     @command
     def Homing_Minus(self):
         if self.__Inverted:
-            self.send_cmd(self._Axis_Name + '0+')
+            self.send_cmd(self.__Axis_Name + '0+')
         else:
-            self.send_cmd(self._Axis_Name + '0-')
+            self.send_cmd(self.__Axis_Name + '0-')
+        self.set_state(DevState.MOVING)
 
     @command
     def Stop(self):
-        self.send_cmd(self._Axis_Name + 'S')
+        self.send_cmd(self.__Axis_Name + 'S')
+        self.set_state(DevState.ON)
 
     @command(dtype_in=str, dtype_out=str, doc_in="step\nmm\ninch\ndegree",
              doc_out='the unit')
@@ -358,7 +366,7 @@ class PhytronMCC2Axis(Device):
         if str.lower(unit) in self.__MOVE_UNIT:
             self.__Unit = str.lower(unit)
             tmp = self.__MOVE_UNIT.index(self.__Unit) + 1
-            self.send_cmd(self._Axis_Name + 'P2S' + str(tmp))
+            self.send_cmd(self.__Axis_Name + 'P2S' + str(tmp))
             self.set_display_unit()
         else:
             Except.throw_exception("PhytronMCC.set_movement_unit",
@@ -369,7 +377,7 @@ class PhytronMCC2Axis(Device):
 
     @command(dtype_out=str)
     def get_movement_unit(self):
-        answer = self.send_cmd(self._Axis_Name + 'P2R')
+        answer = self.send_cmd(self.__Axis_Name + 'P2R')
         self.__Unit = self.__MOVE_UNIT[int(answer)-1]
         return (self.__Unit)
 
