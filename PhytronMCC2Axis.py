@@ -130,7 +130,6 @@ class PhytronMCC2Axis(Device):
     # private status variables, updated by "mcc_state()"
     __Limit_Minus = False
     __Limit_Plus = False
-    __Moving = False
     __Inverted = False
     __Alias = 'mcc2'
     # other private variables
@@ -185,7 +184,6 @@ class PhytronMCC2Axis(Device):
         if flagDebugIO:
             print("PhytronMCCAxis2.init_device: Limit- = %s" % self.__Limit_Minus)
             print("PhytronMCCAxis2.init_device: Limit+ = %s " % self.__Limit_Plus)
-            print("PhytronMCCAxis2.init_device: Moving = %s" % self.__Moving)
             print("PhytronMCCAxis2.init_device: Postion %s" % self.__Pos)
 
     def delete_device(self):
@@ -218,9 +216,6 @@ class PhytronMCC2Axis(Device):
     def read_limit_plus(self):
         return self.__Limit_Plus
 
-    def read_moving(self):
-        return self.__Moving
-
     def read_position(self):
         return (self.__Pos)
 
@@ -234,7 +229,6 @@ class PhytronMCC2Axis(Device):
             answer = self.send_cmd('YA{:.4f}'.format(value))
         if answer != self.__NACK:
             self.set_state(DevState.MOVING)
-            self.__Moving = True
 
     def read_alias(self):
         return self.Alias
@@ -330,7 +324,6 @@ class PhytronMCC2Axis(Device):
         answer = temp.tostring()
         if self.__ACK in answer:
             tmp = answer.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)
-            self.set_state(DevState.ON)
         else:
             tmp = self.__NACK
             self.set_state(DevState.FAULT)
@@ -361,7 +354,7 @@ class PhytronMCC2Axis(Device):
             else:
                 self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
                 self.__Limit_Plus = bool(int(answer[2]) & self.__LIM_PLUS)
-            self.__Moving = not(bool(int(answer[1]) & self.__MOVE))
+            moving = not(bool(int(answer[1]) & self.__MOVE))
         else:
             if self.__Inverted:
                 self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_PLUS)
@@ -369,9 +362,8 @@ class PhytronMCC2Axis(Device):
             else:
                 self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_MINUS)
                 self.__Limit_Plus = bool(int(answer[6]) & self.__LIM_PLUS)
-
-            self.__Moving = not(bool(int(answer[5]) & self.__MOVE))
-        if self.__Moving is False:
+            moving = not(bool(int(answer[5]) & self.__MOVE))
+        if moving is False:
             self.set_state(DevState.ON)
         else:
             self.set_state(DevState.MOVING)
@@ -464,7 +456,6 @@ class PhytronMCC2Axis(Device):
         else:
             answer = self.send_cmd('YP2R')
         self.__Unit = self.__MOVE_UNIT[int(answer)-1]
-
         return (self.__Unit)
 
     @command(dtype_in=str)

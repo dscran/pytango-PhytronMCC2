@@ -24,7 +24,7 @@ class PhytronMCC2Ctrl(Device):
         dtype="int",
         default_value="115200",
     )
-    
+
     # device attributes
     port = attribute(
         dtype="str",
