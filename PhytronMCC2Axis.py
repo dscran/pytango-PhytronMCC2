@@ -33,22 +33,22 @@ class PhytronMCC2Axis(Device):
     # device attributes
     limit_minus = attribute(
         dtype='bool',
-        label="limit -",
+        label='limit -',
         access=AttrWriteType.READ,
         display_level=DispLevel.OPERATOR,
     )
 
     limit_plus = attribute(
         dtype='bool',
-        label="limit +",
+        label='limit +',
         access=AttrWriteType.READ,
         display_level=DispLevel.OPERATOR,
     )
 
     position = attribute(
-        dtype=float,
+        dtype='float',
         format='%8.3f',
-        label="position",
+        label='position',
         unit='steps',
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.OPERATOR,
@@ -56,14 +56,14 @@ class PhytronMCC2Axis(Device):
 
     alias = attribute(
         dtype='string',
-        label="alias",
+        label='alias',
         access=AttrWriteType.READ,
         display_level=DispLevel.OPERATOR,
     )
 
     inverted = attribute(
         dtype='bool',
-        label="inverted",
+        label='inverted',
         memorized=True,
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
@@ -71,7 +71,7 @@ class PhytronMCC2Axis(Device):
 
     acceleration = attribute(
         dtype='int',
-        label="acceleration",
+        label='acceleration',
         unit='Hz',
         min_value=4000,
         max_value=500000,
@@ -81,7 +81,7 @@ class PhytronMCC2Axis(Device):
 
     velocity = attribute(
         dtype='int',
-        label="velocity",
+        label='velocity',
         unit='Hz',
         min_value=0,
         max_value=40000,
@@ -91,11 +91,11 @@ class PhytronMCC2Axis(Device):
 
     hold_current = attribute(
         dtype='float',
-        label="hold current",
+        label='hold current',
         unit='A',
         min_value=0,
         max_value=2.5,
-        format='%2.1f',        
+        format='%2.1f',
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
@@ -114,7 +114,7 @@ class PhytronMCC2Axis(Device):
     step_per_unit = attribute(
         dtype='float',
         format='%10.8f',
-        label="step per unit",
+        label='step per unit',
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
@@ -272,7 +272,7 @@ class PhytronMCC2Axis(Device):
             answer = self.send_cmd('XP41R')
         else:
             answer = self.send_cmd('YP41R')
-        return float(answer*0.1)
+        return float(answer)/10
 
     def write_run_current(self, value):
         # motor run current (see manual page 54)
@@ -289,7 +289,7 @@ class PhytronMCC2Axis(Device):
             answer = self.send_cmd('XP40R')
         else:
             answer = self.send_cmd('YP40R')
-        return float(answer*0.1)
+        return float(answer)/10
 
     def write_hold_current(self, value):
         # motor hold current (see manual page 54)
