@@ -76,9 +76,9 @@ class PhytronMCC2Axis(Device):
         display_level=DispLevel.EXPERT,
     )
 
-    frequency_max = attribute(
+    velocity = attribute(
         dtype='float',
-        label="frequency_max",
+        label="velocity",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
@@ -97,10 +97,10 @@ class PhytronMCC2Axis(Device):
         display_level=DispLevel.EXPERT,
     )
 
-    conversion_factor = attribute(
+    step_per_unit = attribute(
         dtype='float',
         format='%10.8f',
-        label="conversion factor",
+        label="step per unit",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
@@ -110,13 +110,8 @@ class PhytronMCC2Axis(Device):
     __ACK = chr(6)         # Command ok
     __NACK = chr(0x15)     # command failed
     __ETX = chr(3)         # end of text
-    __SE = 'SE'            # command for reading extended status
     __REG_STEP_CNT = 'P20'
-    __REG_UNIT = 'P2'      # Register unit of movement
-    __REG_SPINDLE = 'P3'   # Register of spindle pitch (Spindelsteigung)
     __MOVE_UNIT = ("step", "mm", "inch", "degree")
-    __SPINDLE = 1.0
-    __DISPL_UNIT = ("step", "mm", "inch", "degree")
     __MOVE = 1
     __LIM_PLUS = 2
     __LIM_MINUS = 1
@@ -130,7 +125,7 @@ class PhytronMCC2Axis(Device):
     __Axis = 0
     __Pos = 0
     __Unit = 'step'
-    __Conv_Factor = 1.0
+    __Step_Per_Unit = 1.0
 
     def init_device(self):
         self.debug_stream("In init_device()")
@@ -167,7 +162,7 @@ class PhytronMCC2Axis(Device):
             # read controller variables
             self.get_mcc_state()
             self.read_position()
-            self.read_conversion_factor()
+            self.read_step_per_unit()
             self.get_movement_unit()
             self.set_display_unit()
             self.set_state(DevState.ON)
@@ -245,14 +240,14 @@ class PhytronMCC2Axis(Device):
         else:
             self.send_cmd('YP15S{:f}'.format(value))
 
-    def read_frequency_max(self):
+    def read_velocity(self):
         if (self.__Axis == 0):
             answer = self.send_cmd('XP14R')
         else:
             answer = self.send_cmd('YP14R')
         return float(answer)
 
-    def write_frequency_max(self, value):
+    def write_velocity(self, value):
         if (self.__Axis == 0):
             self.send_cmd('XP14S{:f}'.format(value))
         else:
@@ -290,7 +285,7 @@ class PhytronMCC2Axis(Device):
         else:
             self.send_cmd('YP40S{:d}'.format(value))
 
-    def read_conversion_factor(self):
+    def read_step_per_unit(self):
         # spindle pitch (see manual page 50)
         if (self.__Axis == 0):
             answer = self.send_cmd('XP3R')
@@ -299,7 +294,7 @@ class PhytronMCC2Axis(Device):
         self.__Conv_Factor = float(answer)
         return self.__Conv_Factor
 
-    def write_conversion_factor(self, value):
+    def write_step_per_unit(self, value):
         # spindle pitch (see manual page 50)
         if (self.__Axis == 0):
             self.send_cmd('XP3S{:f}'.format(value))
