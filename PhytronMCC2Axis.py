@@ -45,13 +45,6 @@ class PhytronMCC2Axis(Device):
         display_level=DispLevel.OPERATOR,
     )
 
-    moving = attribute(
-        dtype='bool',
-        label="moving",
-        access=AttrWriteType.READ,
-        display_level=DispLevel.OPERATOR,
-    )
-
     position = attribute(
         dtype=float,
         format='%8.3f',
