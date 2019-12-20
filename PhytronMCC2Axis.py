@@ -70,29 +70,43 @@ class PhytronMCC2Axis(Device):
     )
 
     acceleration = attribute(
-        dtype='float',
+        dtype='int',
         label="acceleration",
+        unit='Hz',
+        min_value=4000,
+        max_value=500000,
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
 
     velocity = attribute(
-        dtype='float',
+        dtype='int',
         label="velocity",
+        unit='Hz',
+        min_value=0,
+        max_value=40000,
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
 
     hold_current = attribute(
-        dtype='int',
+        dtype='float',
         label="hold current",
+        unit='A',
+        min_value=0,
+        max_value=2.5,
+        format='2.1f',        
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
 
     run_current = attribute(
-        dtype='int',
+        dtype='float',
         label="run current",
+        unit='A',
+        min_value=0,
+        max_value=2.5,
+        format='2.1f',
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
@@ -232,36 +246,37 @@ class PhytronMCC2Axis(Device):
             answer = self.send_cmd('XP15R')
         else:
             answer = self.send_cmd('YP15R')
-        return float(answer)
+        return int(answer)
 
     def write_acceleration(self, value):
         if (self.__Axis == 0):
-            self.send_cmd('XP15S{:f}'.format(value))
+            self.send_cmd('XP15S{:d}'.format(value))
         else:
-            self.send_cmd('YP15S{:f}'.format(value))
+            self.send_cmd('YP15S{:d}'.format(value))
 
     def read_velocity(self):
         if (self.__Axis == 0):
             answer = self.send_cmd('XP14R')
         else:
             answer = self.send_cmd('YP14R')
-        return float(answer)
+        return int(answer)
 
     def write_velocity(self, value):
         if (self.__Axis == 0):
-            self.send_cmd('XP14S{:f}'.format(value))
+            self.send_cmd('XP14S{:d}'.format(value))
         else:
-            self.send_cmd('YP14S{:f}'.format(value))
+            self.send_cmd('YP14S{:d}'.format(value))
 
     def read_run_current(self):
         if (self.__Axis == 0):
             answer = self.send_cmd('XP41R')
         else:
             answer = self.send_cmd('YP41R')
-        return int(answer)
+        return float(answer*0.1)
 
     def write_run_current(self, value):
         # motor run current (see manual page 54)
+        value = int(value*10)
         if value not in range(1, 26):
             return 'input not in range 1..25'
         if (self.__Axis == 0):
@@ -274,10 +289,11 @@ class PhytronMCC2Axis(Device):
             answer = self.send_cmd('XP40R')
         else:
             answer = self.send_cmd('YP40R')
-        return int(answer)
+        return float(answer*0.1)
 
     def write_hold_current(self, value):
         # motor hold current (see manual page 54)
+        value = int(value*10)
         if value not in range(1, 26):
             return 'input not in range 0..25'
         if (self.__Axis == 0):
