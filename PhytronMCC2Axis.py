@@ -373,6 +373,8 @@ class PhytronMCC2Axis(Device):
             self.__Moving = not(bool(int(answer[5]) & self.__MOVE))
         if self.__Moving is False:
             self.set_state(DevState.ON)
+        else:
+            self.set_state(DevState.MOVING)
 
     @command
     def Jog_Plus(self):
