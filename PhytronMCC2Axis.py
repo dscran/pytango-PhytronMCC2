@@ -176,21 +176,24 @@ Limit direction +'''
         # check if the CrlDevice ON, if not open the serial port
         if str(self.ctrl.state()) == "OFF":
             self.ctrl.open()
-
-        if ("MCC" in self.read_firmware_version()):
-            # read memorized attributes from Database
-            db = Database()
-            try:
-                attr = db.get_device_attribute_property(self.get_name(), ['inverted'])
-                if attr['inverted']['__value'][0] == 'true':
-                    self.__Inverted = True
-                else:
-                    self.__Inverted = False
-            except Exception:
-                self.__Inverted = False
-            self.set_state(DevState.ON)
+            self.info_stream("open controller")
         else:
-            self.set_state(DevState.OFF)
+            self.info_stream("controller was already open")
+
+#         if ("MCC" in self.read_firmware_version()):
+#             # read memorized attributes from Database
+#             db = Database()
+#             try:
+#                 attr = db.get_device_attribute_property(self.get_name(), ['inverted'])
+#                 if attr['inverted']['__value'][0] == 'true':
+#                     self.__Inverted = True
+#                 else:
+#                     self.__Inverted = False
+#             except Exception:
+#                 self.__Inverted = False
+#             self.set_state(DevState.ON)
+#         else:
+#             self.set_state(DevState.OFF)
 
         
         self.info_stream("PhytronMCCAxis2.init_device: Limit- = %s" % self.__Limit_Minus)
