@@ -118,6 +118,21 @@ class PhytronMCC2Axis(Device):
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
+    
+    type_of_movement = attribute(
+        dtype='bool',
+        label='type of movement',
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+        doc='''0 = rotational
+Rotating table, 1 limit switch for mechanical zero
+(referencing)
+1 = linear
+for XY tables or other linear systems,
+2 limit switches:
+Mechanical zero and limit direction -
+Limit direction +'''
+    )
 
     # definition some constants
     __STX = chr(2)         # Start of text
@@ -289,14 +304,20 @@ class PhytronMCC2Axis(Device):
 
     def read_step_per_unit(self):
         # spindle pitch (see manual page 50)
-        self.__Step_Per_Unit = float(self.send_cmd(self.__Axis_Name + 'P3R'))
+        self.__Step_Per_Unit = float(self.send_cmd(self.__Axis_Name + 'P03R'))
         return self.__Step_Per_Unit
 
     def write_step_per_unit(self, value):
         # spindle pitch (see manual page 50)
-        self.send_cmd(self.__Axis_Name + 'P3S{:f}'.format(value))
+        self.send_cmd(self.__Axis_Name + 'P03S{:f}'.format(value))
         # update display unit
         self.set_display_unit()
+
+    def read_type_of_movement(self):
+        return bool(int(self.send_cmd(self.__Axis_Name + 'P01R')))
+
+    def write_type_of_movement(self, value):
+        self.send_cmd(self.__Axis_Name + 'P01S{:d}'.format(int(value)))
 
     # commands
     @command(dtype_in=str, dtype_out=str, doc_in='enter a command', doc_out='the answer')
