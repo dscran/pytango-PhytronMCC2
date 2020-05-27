@@ -5,9 +5,6 @@ from tango import Database, Except, AttrWriteType, DevState, DeviceProxy, DispLe
 from tango.server import device_property
 from tango.server import Device, attribute, command
 import sys
-import six
-
-flagDebugIO = 0
 
 class PhytronMCC2Axis(Device):
     # device properties
@@ -164,16 +161,16 @@ Limit direction +'''
         else:
             self.__Axis_Name = 'Y'
 
-        if flagDebugIO:
-            print("PhytronMCC2Axis.init_device: name = %s" % self.get_name())
-            print("PhytronMCC2Axis.init_device: Ctrl.Device = %s" % self.CtrlDevice)
-            print("PhytronMCC2Axis.init_device: Module Address =  %s" % self.Address)
-            print("PhytronMCC2Axis.init_device: Module Axis = %s" % self.Axis)
-            print("PhytronMCC2Axis.init_device: Alias = %s" % self.Alias)
+        self.info_stream("PhytronMCC2Axis.init_device: name = %s" % self.get_name())
+        self.info_stream("PhytronMCC2Axis.init_device: Module Address =  %s" % self.Address)
+        self.info_stream("PhytronMCC2Axis.init_device: Module Axis = %s" % self.Axis)
+        self.info_stream("PhytronMCC2Axis.init_device: Alias = %s" % self.Alias)
+        
         try:
             self.ctrl = DeviceProxy(self.CtrlDevice)
+            self.info_stream("PhytronMCC2Axis.init_device: Ctrl.Device = %s" % self.CtrlDevice)
         except Exception:
-            print("PhytronMCCAxis2.init_device: failed to create proxy to %s" % self.CtrlDevice)
+            self.error_stream("PhytronMCCAxis2.init_device: failed to create proxy to %s" % self.CtrlDevice)
             sys.exit(255)
 
         # check if the CrlDevice ON, if not open the serial port
@@ -195,10 +192,10 @@ Limit direction +'''
         else:
             self.set_state(DevState.OFF)
 
-        if flagDebugIO:
-            print("PhytronMCCAxis2.init_device: Limit- = %s" % self.__Limit_Minus)
-            print("PhytronMCCAxis2.init_device: Limit+ = %s " % self.__Limit_Plus)
-            print("PhytronMCCAxis2.init_device: Postion %s" % self.__Pos)
+        
+        self.info_stream("PhytronMCCAxis2.init_device: Limit- = %s" % self.__Limit_Minus)
+        self.info_stream("PhytronMCCAxis2.init_device: Limit+ = %s " % self.__Limit_Plus)
+        self.info_stream("PhytronMCCAxis2.init_device: Postion %s" % self.__Pos)
 
     def delete_device(self):
         self.set_state(DevState.OFF)
@@ -321,8 +318,10 @@ Limit direction +'''
     def send_cmd(self, cmd):
         # building the string to send it
         s = self.__STX + str(self.__Addr) + cmd + self.__ETX
-        temp = self.ctrl.write_read(s)
-        answer = temp.tostring()
+        self.debug_stream(s)
+        temp = self.ctrl.write_read('some command')
+        # self.debug_stream(temp)
+        answer = ''#temp.tostring()
         if self.__ACK in answer:
             tmp = answer.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)
         else:

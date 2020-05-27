@@ -1,14 +1,12 @@
 #!/usr/bin/python3 -u
 # coding: utf8
 # PhytronMCC2Ctrl
-from tango import DevState, DevVarCharArray, DevUShort, DevUChar, AttrWriteType, DispLevel
+from tango import DevState, DevVarCharArray, DevUShort, DevUChar, AttrWriteType, DispLevel, DebugIt
 from tango.server import Device, attribute, command, device_property
 import time
 import sys
 import serial
 import array
-
-flagDebugIO = 0
 
 class PhytronMCC2Ctrl(Device):
     # device properties
@@ -53,9 +51,9 @@ class PhytronMCC2Ctrl(Device):
         self.serial.baudrate = self.Baudrate
         self.serial.port = self.Port
 
-        if flagDebugIO:
-            print("PhytronMCC2Ctrl.init_device: port = %s " % self.Port)
-            print("PhytronMCC2Ctrl.init_device: baudrate = %s " % self.Baudrate)
+        
+        self.info_stream("PhytronMCC2Ctrl.init_device: port = %s " % self.Port)
+        self.info_stream("PhytronMCC2Ctrl.init_device: baudrate = %s " % self.Baudrate)
 
         self.bytesize = 8
         self.serial.bytesize = self.bytesize
@@ -80,9 +78,6 @@ class PhytronMCC2Ctrl(Device):
 
         # open serial port
         self.open()
-
-    def always_executed_hook(self):
-        self.info_stream("In %s::always_excuted_hook()" % self.get_name())
 
     # attribute read/write methods
     def read_port(self):
@@ -131,20 +126,19 @@ class PhytronMCC2Ctrl(Device):
             self.set_state(DevState.ON)
             self.configure = False
         except Exception:
-            print("PhytronMcc2Ctrl.open: failed to open %s " % self.Port)
+            self.error_stream("PhytronMcc2Ctrl.open: failed to open %s " % self.Port)
             sys.exit(255)
 
-        if flagDebugIO:
-            print("PhytronMcc2Ctrl.open: connected to %s " % self.Port)
+        self.info_stream("PhytronMcc2Ctrl.open: connected to %s " % self.Port)
 
     def is_open_allowed(self):
         if self.get_state() in [DevState.ON, DevState.FAULT]:
             return False
         return True
 
+    @DebugIt
     @command
     def close(self):
-        self.info_stream("In %s::close()" % self.get_name())
         try:
             self.serial.close()
             self.set_state(DevState.OFF)
@@ -156,9 +150,9 @@ class PhytronMCC2Ctrl(Device):
             return False
         return True
 
+    @DebugIt
     @command
     def flush_input(self):
-        self.info_stream("In %s::flush_input()" % self.get_name())
         try:
             self.serial.flush_input()
         except Exception:
@@ -169,9 +163,9 @@ class PhytronMCC2Ctrl(Device):
             return False
         return True
 
+    @DebugIt
     @command
     def flush_output(self):
-        self.info_stream("In %s::flush_output()" % self.get_name())
         try:
             self.serial.flush_output()
         except Exception:
@@ -182,9 +176,11 @@ class PhytronMCC2Ctrl(Device):
             return False
         return True
 
+    @DebugIt
     @command(dtype_in=str, dtype_out=DevVarCharArray)
     def write_read(self, cmd):
-        self.serial.write(cmd.encode())
+        self.debug_stream(cmd)
+        self.serial.write(cmd.encode('utf-8'))
         self.serial.flush()
         # 20ms wait time
         time.sleep(0.02)
@@ -192,13 +188,14 @@ class PhytronMCC2Ctrl(Device):
         s = ''
         s = self.serial.readline()
         self.debug_stream(s)
-        b = array.array('B', s)
-        argout = b.tolist()
-        return argout
+        #b = array.array('B', s)
+        #argout = b.tolist()
+        #self.debug_stream(argout)
+        return s#argout
 
+    @DebugIt
     @command(dtype_in=str)
     def write(self, cmd):
-        self.info_stream("In %s::write()" % self.get_name())
         self.serial.write(cmd.encode())
 
     def is_write_allowed(self):
@@ -206,9 +203,9 @@ class PhytronMCC2Ctrl(Device):
             return False
         return True
 
+    @DebugIt
     @command(dtype_in=DevUShort, dtype_out=DevVarCharArray)
     def read(self, argin):
-        self.info_stream("In %s::read()" % self.get_name())
         argout = []
         s = self.serial.read(argin)
         self.debug_stream(s)
@@ -221,9 +218,9 @@ class PhytronMCC2Ctrl(Device):
             return False
         return True
 
+    @DebugIt
     @command(dtype_out=DevVarCharArray)
     def read_line(self):
-        self.info_stream("In %s::read_line()" % self.get_name())
         argout = []
         s = self.serial.readline(eol=self.terminatorchar)
         self.debug_stream(s)
