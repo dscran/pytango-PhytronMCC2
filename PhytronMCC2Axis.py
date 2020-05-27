@@ -1,17 +1,14 @@
-#!/usr/bin/python -u
+#!/usr/bin/python3 -u
 # coding: utf8
 # PhytronMCC2Axis
-from PyTango import Database, Except, AttrWriteType, DevState, DeviceProxy, DispLevel
-from PyTango.server import run
-from PyTango.server import Device, DeviceMeta, device_property
-from PyTango.server import attribute, command
+from tango import Database, Except, AttrWriteType, DevState, DeviceProxy, DispLevel
+from tango.server import device_property
+from tango.server import Device, attribute, command
 import sys
 import six
 
 flagDebugIO = 0
 
-
-@six.add_metaclass(DeviceMeta)
 class PhytronMCC2Axis(Device):
     # device properties
     CtrlDevice = device_property(
@@ -414,4 +411,4 @@ Limit direction +'''
 
 
 if __name__ == '__main__':
-    run((PhytronMCC2Axis,))
+    PhytronMCC2Axis.run_server()

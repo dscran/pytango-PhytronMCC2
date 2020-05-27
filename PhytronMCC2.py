@@ -1,6 +1,6 @@
-#!/usr/bin/python -u
-from PyTango.server import run
-from PyTango import Database
+#!/usr/bin/python3 -u
+from tango.server import run
+from tango import Database
 import os
 from PhytronMCC2Axis import PhytronMCC2Axis
 from PhytronMCC2Ctrl import PhytronMCC2Ctrl
@@ -16,4 +16,4 @@ except Exception:
     exit(255)
 
 print('Run PhytronMCC2Ctrl & PhytronMCC2Axis')
-run((PhytronMCC2Ctrl, PhytronMCC2Axis,))
+run([PhytronMCC2Ctrl, PhytronMCC2Axis])

@@ -1,18 +1,15 @@
-#!/usr/bin/python -u
+#!/usr/bin/python3 -u
 # coding: utf8
 # PhytronMCC2Ctrl
-from PyTango import DevState, DevVarCharArray, DevUShort, DevUChar, AttrWriteType, DispLevel
-from PyTango.server import Device, DeviceMeta, attribute, command, device_property, run
+from tango import DevState, DevVarCharArray, DevUShort, DevUChar, AttrWriteType, DispLevel
+from tango.server import Device, attribute, command, device_property
 import time
 import sys
 import serial
 import array
-import six
 
 flagDebugIO = 0
 
-
-@six.add_metaclass(DeviceMeta)
 class PhytronMCC2Ctrl(Device):
     # device properties
     Port = device_property(
@@ -256,4 +253,4 @@ class PhytronMCC2Ctrl(Device):
 
 
 if __name__ == '__main__':
-    run((PhytronMCC2Ctrl, ))
+    PhytronMCC2Ctrl.run_server()
