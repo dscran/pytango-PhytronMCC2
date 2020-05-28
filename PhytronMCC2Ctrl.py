@@ -133,13 +133,13 @@ class PhytronMCC2Ctrl(Device):
     @command(dtype_in=str, dtype_out=str)
     def write_read(self, cmd):
         cmd = self.__STX + cmd + self.__ETX
-        self.debug_stream("write command: {:s]".format(cmd))
-        self.serial.write(cmd.encode('utf-8'))
+        self.debug_stream("write command: {:s}".format(cmd))
+        self.serial.write(cmd.encode("utf-8"))
         self.serial.flush()
         # 20ms wait time
         time.sleep(0.02)
-        res = self.serial.readline().decode('utf-8')
-        self.debug_stream("read response: {:s]".format(res))
+        res = self.serial.readline().decode("utf-8")
+        self.debug_stream("read response: {:s}".format(res))
         if self.__ACK in res:
             return res.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)
         else:
@@ -152,5 +152,5 @@ class PhytronMCC2Ctrl(Device):
         return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     PhytronMCC2Ctrl.run_server()
