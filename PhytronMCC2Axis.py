@@ -105,10 +105,10 @@ class PhytronMCC2Axis(Device):
         display_level=DispLevel.EXPERT,
     )
 
-    step_per_unit = attribute(
+    steps_per_unit = attribute(
         dtype="float",
-        format="%10.8f",
-        label="step per unit",
+        format="%10d",
+        label="steps per unit",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
@@ -143,7 +143,7 @@ Limit direction +"""
     __Axis = 0
     __Axis_Name = ""
     __Unit = "step"
-    __Step_Per_Unit = 1.0
+    __Steps_Per_Unit = 1.0
 
     def init_device(self):
         self.info_stream("init_device()")
@@ -297,14 +297,14 @@ Limit direction +"""
             return "input not in range 0..25"
         self.send_cmd("P40S{:d}".format(value))
 
-    def read_step_per_unit(self):
-        # spindle pitch (see manual page 50)
-        self.__Step_Per_Unit = float(self.send_cmd("P03R"))
-        return self.__Step_Per_Unit
+    def read_steps_per_unit(self):
+        # inverse of spindle pitch (see manual page 50)
+        self.__Steps_Per_Unit = int(1/float(self.send_cmd("P03R")))
+        return self.__Steps_Per_Unit
 
-    def write_step_per_unit(self, value):
-        # spindle pitch (see manual page 50)
-        self.send_cmd("P03S{:f}".format(value))
+    def write_steps_per_unit(self, value):
+        # inverse of spindle pitch (see manual page 50)
+        self.send_cmd("P03S{:f}".format(1/value))
         # update display unit
         self.set_display_unit()
 
