@@ -5,6 +5,11 @@ from tango import Database, Except, AttrWriteType, DevState, DeviceProxy, DispLe
 from tango.server import device_property
 from tango.server import Device, attribute, command
 import sys
+from enum import IntEnum
+
+class MovementType(IntEnum):
+    rotational = 0  # DevEnum's must start at 0
+    linear = 1  # and increment by 1
 
 class PhytronMCC2Axis(Device):
     # device properties
@@ -132,7 +137,7 @@ class PhytronMCC2Axis(Device):
     )
     
     type_of_movement = attribute(
-        dtype="bool",
+        dtype=MovementType,
         label="type of movement",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
@@ -341,7 +346,10 @@ Limit direction +"""
         self.set_display_unit()
 
     def read_type_of_movement(self):
-        return bool(int(self.send_cmd("P01R")))
+        if bool(int(self.send_cmd("P01R"))):
+            return MovementType.linear
+        else:
+            return MovementType.rotational
 
     def write_type_of_movement(self, value):
         self.send_cmd("P01S{:d}".format(int(value)))
