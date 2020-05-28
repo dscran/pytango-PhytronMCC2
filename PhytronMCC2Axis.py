@@ -412,6 +412,15 @@ Limit direction +"""
     def write_to_eeprom(self):
         self.send_cmd("SA")
         return "parameter written to flash memory"
+    
+    @command(dtype_out=str)
+    def dump_config(self):
+        parameters = range(1, 50)
+        res = ""
+        for par in parameters:
+            cmd = "P{:02d}R".format(par)
+            res = res + "P{:02d}: {:s}\n".format(par, str(self.send_cmd(cmd)))
+        return res
 
 
 if __name__ == "__main__":
