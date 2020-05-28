@@ -11,6 +11,13 @@ class MovementType(IntEnum):
     rotational = 0  # DevEnum's must start at 0
     linear = 1  # and increment by 1
 
+class MovementUnit(IntEnum):
+    # step, mm, inch, degree
+    step = 0
+    mm = 1
+    inch = 2
+    degree = 3
+    
 class PhytronMCC2Axis(Device):
     # device properties
     CtrlDevice = device_property(
@@ -150,10 +157,17 @@ for XY tables or other linear systems,
 Mechanical zero and limit direction -
 Limit direction +"""
     )
+    
+    movement_unit = attribute(
+        dtype=MovementUnit,
+        label="unit",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+        doc="Allowed unit values are step, mm, inch, degree"
+    )
 
     # definition some constants
     __NACK = chr(0x15)     # command failed
-    __MOVE_UNIT = ("step", "mm", "inch", "degree")
     __LIM_PLUS = 2
     __LIM_MINUS = 1
     # private status variables, updated by "mcc_state()"
@@ -251,14 +265,16 @@ Limit direction +"""
 
     def set_display_unit(self):
         attributes = ["position", "sw_limit_minus", "sw_limit_plus"]
-        for attr in attributes:
-            ac = self.get_attribute_config(attr)
-            ac.unit = self.__Unit
-            if (self.__Step_Per_Unit % 1) == 0.0:
-                ac.format = "%8d"
-            else:
-                ac.format = "%8.3f"
-            self.set_attribute_config(ac)
+        self.warn_stream("cannot set unit for position and sw limits dynamically")
+        self.info_stream(str(self.__Unit))
+        #for attr in attributes:
+        #    ac = self.get_attribute_config(attr)
+        #    ac.unit = self.__Unit
+        #    if (self.__Step_Per_Unit % 1) == 0.0:
+        #        ac.format = "%8d"
+        #    else:
+        #        ac.format = "%8.3f"
+        #    self.set_attribute_config(ac)
 
     # attribute read/write methods
     def read_hw_limit_minus(self):
@@ -346,13 +362,27 @@ Limit direction +"""
         self.set_display_unit()
 
     def read_type_of_movement(self):
-        if bool(int(self.send_cmd("P01R"))):
-            return MovementType.linear
-        else:
-            return MovementType.rotational
+        return MovementType.linear if bool(int(self.send_cmd("P01R"))) else MovementType.rotational
 
     def write_type_of_movement(self, value):
         self.send_cmd("P01S{:d}".format(int(value)))
+
+    def read_movement_unit(self):
+        res = int(self.send_cmd("P02R"))
+        if res == 1:
+            self.__Unit = MovementUnit.step
+        elif res == 2:
+            self.__Unit = MovementUnit.mm
+        elif res == 3:
+            self.__Unit = MovementUnit.inch
+        elif res == 4:
+            self.__Unit = MovementUnit.degree
+        return self.__Unit
+
+    def write_movement_unit(self, value):
+        self.send_cmd("P02S{:d}".format(int(value+1)))
+        self.read_movement_unit()
+        self.set_display_unit()
 
     # internal methods
     def _send_cmd(self, cmd):
@@ -426,27 +456,6 @@ Limit direction +"""
     def Abort(self):
         self.send_cmd("SN")
         self.set_state(DevState.ON)
-
-    @command(dtype_in=str, dtype_out=str, doc_in="step\nmm\ninch\ndegree",
-             doc_out="the unit")
-    def set_movement_unit(self, unit):
-        if str.lower(unit) in self.__MOVE_UNIT:
-            self.__Unit = str.lower(unit)
-            tmp = self.__MOVE_UNIT.index(self.__Unit) + 1
-            self.send_cmd("P02S" + str(tmp))
-            self.set_display_unit()
-        else:
-            Except.throw_exception("PhytronMCC.set_movement_unit",
-                                   "Allowed unit values are step, mm, inch, degree",
-                                   "set_movement_unit()")
-        self.__Unit = self.get_movement_unit()
-        return self.__Unit
-
-    @command(dtype_out=str)
-    def get_movement_unit(self):
-        answer = self.send_cmd("P02R")
-        self.__Unit = self.__MOVE_UNIT[int(answer)-1]
-        return self.__Unit
 
     @command(dtype_in=str)
     def set_alias(self, mcc_name):
