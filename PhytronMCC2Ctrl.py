@@ -136,7 +136,6 @@ class PhytronMCC2Ctrl(Device):
             return False
         return True
 
-    @DebugIt
     @command
     def close(self):
         try:
@@ -150,100 +149,20 @@ class PhytronMCC2Ctrl(Device):
             return False
         return True
 
-    @DebugIt
-    @command
-    def flush_input(self):
-        try:
-            self.serial.flush_input()
-        except Exception:
-            pass
-
-    def is_flush_input_allowed(self):
-        if self.get_state() in [DevState.FAULT, DevState.OFF]:
-            return False
-        return True
-
-    @DebugIt
-    @command
-    def flush_output(self):
-        try:
-            self.serial.flush_output()
-        except Exception:
-            pass
-
-    def is_flush_output_allowed(self):
-        if self.get_state() in [DevState.FAULT, DevState.OFF]:
-            return False
-        return True
-
-    @DebugIt
-    @command(dtype_in=str, dtype_out=DevVarCharArray)
+    @command(dtype_in=str, dtype_out=str)
     def write_read(self, cmd):
         self.debug_stream(cmd)
         self.serial.write(cmd.encode('utf-8'))
         self.serial.flush()
         # 20ms wait time
         time.sleep(0.02)
-        argout = []
-        s = ''
-        s = self.serial.readline()
-        self.debug_stream(s)
+        res = self.serial.readline()
         #b = array.array('B', s)
         #argout = b.tolist()
-        #self.debug_stream(argout)
-        return s#argout
-
-    @DebugIt
-    @command(dtype_in=str)
-    def write(self, cmd):
-        self.serial.write(cmd.encode())
+        
+        return res.decode('utf-8')
 
     def is_write_allowed(self):
-        if self.get_state() in [DevState.FAULT, DevState.OFF]:
-            return False
-        return True
-
-    @DebugIt
-    @command(dtype_in=DevUShort, dtype_out=DevVarCharArray)
-    def read(self, argin):
-        argout = []
-        s = self.serial.read(argin)
-        self.debug_stream(s)
-        b = array.array('B', s)
-        argout = b.tolist()
-        return argout
-
-    def is_read_allowed(self):
-        if self.get_state() in [DevState.FAULT, DevState.OFF]:
-            return False
-        return True
-
-    @DebugIt
-    @command(dtype_out=DevVarCharArray)
-    def read_line(self):
-        argout = []
-        s = self.serial.readline(eol=self.terminatorchar)
-        self.debug_stream(s)
-        b = array.array('B', s)
-        argout = b.tolist()
-        return argout
-
-    def is_read_line_allowed(self):
-        if self.get_state() in [DevState.FAULT, DevState.OFF]:
-            return False
-        return True
-
-    @command(dtype_in=DevUChar, dtype_out=DevVarCharArray)
-    def read_until(self, c):
-        self.info_stream("In %s::read_until()" % self.get_name())
-        argout = []
-        s = self.serial.read_until(c)
-        self.debug_stream(s)
-        b = array.array('B', s)
-        argout = b.tolist()
-        return argout
-
-    def is_read_until_allowed(self):
         if self.get_state() in [DevState.FAULT, DevState.OFF]:
             return False
         return True

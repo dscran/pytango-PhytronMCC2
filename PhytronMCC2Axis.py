@@ -180,31 +180,30 @@ Limit direction +'''
         else:
             self.info_stream("controller was already open")
 
-#         if ("MCC" in self.read_firmware_version()):
-#             # read memorized attributes from Database
-#             db = Database()
-#             try:
-#                 attr = db.get_device_attribute_property(self.get_name(), ['inverted'])
-#                 if attr['inverted']['__value'][0] == 'true':
-#                     self.__Inverted = True
-#                 else:
-#                     self.__Inverted = False
-#             except Exception:
-#                 self.__Inverted = False
-#             self.set_state(DevState.ON)
-#         else:
-#             self.set_state(DevState.OFF)
+        if ("MCC" in self.read_firmware_version()):
+            # read memorized attributes from Database
+            db = Database()
+            try:
+                attr = db.get_device_attribute_property(self.get_name(), ['inverted'])
+                if attr['inverted']['__value'][0] == 'true':
+                    self.__Inverted = True
+                else:
+                    self.__Inverted = False
+            except Exception:
+                self.__Inverted = False
+            self.set_state(DevState.ON)
+        else:
+            self.set_state(DevState.OFF)
 
         
         self.info_stream("PhytronMCCAxis2.init_device: Limit- = %s" % self.__Limit_Minus)
         self.info_stream("PhytronMCCAxis2.init_device: Limit+ = %s " % self.__Limit_Plus)
-        self.info_stream("PhytronMCCAxis2.init_device: Postion %s" % self.__Pos)
 
     def delete_device(self):
         self.set_state(DevState.OFF)
 
     def dev_state(self):
-        answer = self.send_cmd('SE')
+        answer = self._send_cmd('SE')
         if (self.__Axis == 0):
             if self.__Inverted:
                 self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_PLUS)
@@ -245,7 +244,7 @@ Limit direction +'''
         return self.__Limit_Plus
 
     def read_position(self):
-        ret = self.send_cmd(self.__Axis_Name + 'P20R')
+        ret = self.send_cmd('P20R')
         if self.__Inverted:
             return -1*float(ret)
         else:
@@ -254,7 +253,7 @@ Limit direction +'''
     def write_position(self, value):
         if self.__Inverted:
             value = -1*value
-        answer = self.send_cmd(self.__Axis_Name + 'A{:.4f}'.format(value))
+        answer = self.send_cmd('A{:.4f}'.format(value))
         if answer != self.__NACK:
             self.set_state(DevState.MOVING)
 
@@ -262,117 +261,120 @@ Limit direction +'''
         return self.Alias
 
     def read_inverted(self):
-        return (self.__Inverted)
+        return self.__Inverted
 
     def write_inverted(self, value):
         self.__Inverted = bool(value)
 
     def read_acceleration(self):
-        return int(self.send_cmd(self.__Axis_Name + 'P15R'))
+        return int(self.send_cmd('P15R'))
 
     def write_acceleration(self, value):
-        self.send_cmd(self.__Axis_Name + 'P15S{:d}'.format(value))
+        self.send_cmd('P15S{:d}'.format(value))
 
     def read_velocity(self):
-        return int(self.send_cmd(self.__Axis_Name + 'P14R'))
+        return int(self.send_cmd('P14R'))
 
     def write_velocity(self, value):
-        self.send_cmd(self.__Axis_Name + 'P14S{:d}'.format(value))
+        self.send_cmd('P14S{:d}'.format(value))
 
     def read_run_current(self):
-        return float(self.send_cmd(self.__Axis_Name + 'P41R'))/10
+        return float(self.send_cmd('P41R'))/10
 
     def write_run_current(self, value):
         # motor run current (see manual page 54)
         value = int(value*10)
         if value not in range(1, 26):
             return 'input not in range 1..25'
-        self.send_cmd(self.__Axis_Name + 'P41S{:d}'.format(value))
+        self.send_cmd('P41S{:d}'.format(value))
 
     def read_hold_current(self):
-        return float(self.send_cmd(self.__Axis_Name + 'P40R'))/10
+        return float(self.send_cmd('P40R'))/10
 
     def write_hold_current(self, value):
         # motor hold current (see manual page 54)
         value = int(value*10)
         if value not in range(1, 26):
             return 'input not in range 0..25'
-        self.send_cmd(self.__Axis_Name + 'P40S{:d}'.format(value))
+        self.send_cmd('P40S{:d}'.format(value))
 
     def read_step_per_unit(self):
         # spindle pitch (see manual page 50)
-        self.__Step_Per_Unit = float(self.send_cmd(self.__Axis_Name + 'P03R'))
+        self.__Step_Per_Unit = float(self.send_cmd('P03R'))
         return self.__Step_Per_Unit
 
     def write_step_per_unit(self, value):
         # spindle pitch (see manual page 50)
-        self.send_cmd(self.__Axis_Name + 'P03S{:f}'.format(value))
+        self.send_cmd('P03S{:f}'.format(value))
         # update display unit
         self.set_display_unit()
 
     def read_type_of_movement(self):
-        return bool(int(self.send_cmd(self.__Axis_Name + 'P01R')))
+        return bool(int(self.send_cmd('P01R')))
 
     def write_type_of_movement(self, value):
-        self.send_cmd(self.__Axis_Name + 'P01S{:d}'.format(int(value)))
+        self.send_cmd('P01S{:d}'.format(int(value)))
 
+    # internal methods
+    def _send_cmd(self, cmd):
+        # building the string to send it
+        cmd = self.__STX + str(self.__Addr) + cmd + self.__ETX
+        res = self.ctrl.write_read(cmd)
+        if self.__ACK in res:
+            res_encode = res.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)
+        else:
+            res_encode = self.__NACK
+            self.set_state(DevState.FAULT)
+        self.debug_stream(res_encode)
+        return res_encode
+    
     # commands
     @command(dtype_in=str, dtype_out=str, doc_in='enter a command', doc_out='the answer')
     def send_cmd(self, cmd):
-        # building the string to send it
-        s = self.__STX + str(self.__Addr) + cmd + self.__ETX
-        self.debug_stream(s)
-        temp = self.ctrl.write_read('some command')
-        # self.debug_stream(temp)
-        answer = ''#temp.tostring()
-        if self.__ACK in answer:
-            tmp = answer.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)
-        else:
-            tmp = self.__NACK
-            self.set_state(DevState.FAULT)
-        return (tmp)
+        # add axis name (X, Y) to beginning of command
+        return self._send_cmd(self.__Axis_Name + cmd)        
 
     @command(dtype_out=str, doc_out='the version of firmware')
     def read_firmware_version(self):
-        version = self.send_cmd('IVR')
-        return (version)
+        version = self._send_cmd('IVR')
+        return version
 
     @command(dtype_in=float, doc_in='position')
     def set_position(self, value):
         if self.__Inverted:
             value = -1*value
-        self.send_cmd(self.__Axis_Name + 'P20S{:.4f}'.format(value))
+        self.send_cmd('P20S{:.4f}'.format(value))
 
     @command
     def Jog_Plus(self):
         if self.__Inverted:
-            self.send_cmd(self.__Axis_Name + 'L-')
+            self.send_cmd('L-')
         else:
-            self.send_cmd(self.__Axis_Name + 'L+')
+            self.send_cmd('L+')
         self.set_state(DevState.MOVING)
 
     @command
     def Jog_Minus(self):
         if self.__Inverted:
-            self.send_cmd(self.__Axis_Name + 'L+')
+            self.send_cmd('L+')
         else:
-            self.send_cmd(self.__Axis_Name + 'L-')
+            self.send_cmd('L-')
         self.set_state(DevState.MOVING)
 
     @command
     def Homing_Plus(self):
         if self.__Inverted:
-            self.send_cmd(self.__Axis_Name + '0-')
+            self.send_cmd('0-')
         else:
-            self.send_cmd(self.__Axis_Name + '0+')
+            self.send_cmd('0+')
         self.set_state(DevState.MOVING)
 
     @command
     def Homing_Minus(self):
         if self.__Inverted:
-            self.send_cmd(self.__Axis_Name + '0+')
+            self.send_cmd('0+')
         else:
-            self.send_cmd(self.__Axis_Name + '0-')
+            self.send_cmd('0-')
         self.set_state(DevState.MOVING)
 
     @command
@@ -386,20 +388,20 @@ Limit direction +'''
         if str.lower(unit) in self.__MOVE_UNIT:
             self.__Unit = str.lower(unit)
             tmp = self.__MOVE_UNIT.index(self.__Unit) + 1
-            self.send_cmd(self.__Axis_Name + 'P2S' + str(tmp))
+            self.send_cmd('P02S' + str(tmp))
             self.set_display_unit()
         else:
             Except.throw_exception("PhytronMCC.set_movement_unit",
                                    "Allowed unit values are step, mm, inch, degree",
                                    "set_movement_unit()")
         self.__Unit = self.get_movement_unit()
-        return(self.__Unit)
+        return self.__Unit
 
     @command(dtype_out=str)
     def get_movement_unit(self):
         answer = self.send_cmd(self.__Axis_Name + 'P2R')
         self.__Unit = self.__MOVE_UNIT[int(answer)-1]
-        return (self.__Unit)
+        return self.__Unit
 
     @command(dtype_in=str)
     def set_alias(self, mcc_name):
