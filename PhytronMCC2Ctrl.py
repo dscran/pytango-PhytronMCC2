@@ -35,10 +35,16 @@ class PhytronMCC2Ctrl(Device):
         display_level=DispLevel.OPERATOR,
     )
 
+    # definition some constants
     PARITIES = ["none", "odd", "even"]
     FLOWCONTROL = ["none", "software", "hardware", "sw/hw"]
     TERMINATOR = ["LF/CR", "CR/LF", "CR", "LF", "NONE"]
     TERMINATORCHAR = ["\n\r", "\r\n", "\r", "\n", ""]
+    
+    __STX = chr(2)         # Start of text
+    __ACK = chr(6)         # Command ok
+    __NACK = chr(0x15)     # command failed
+    __ETX = chr(3)         # end of text
 
     def init_device(self):
         self.info_stream("In %s::init_device()" % self.get_name())
@@ -151,16 +157,19 @@ class PhytronMCC2Ctrl(Device):
 
     @command(dtype_in=str, dtype_out=str)
     def write_read(self, cmd):
+        cmd = self.__STX + cmd + self.__ETX
         self.debug_stream(cmd)
         self.serial.write(cmd.encode('utf-8'))
         self.serial.flush()
         # 20ms wait time
         time.sleep(0.02)
-        res = self.serial.readline()
-        #b = array.array('B', s)
-        #argout = b.tolist()
-        
-        return res.decode('utf-8')
+        res = self.serial.readline().decode('utf-8')
+        print(res)
+        if self.__ACK in res:
+            return res.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)
+        else:
+            # no acknowledgment in response
+            return self.__NACK
 
     def is_write_allowed(self):
         if self.get_state() in [DevState.FAULT, DevState.OFF]:

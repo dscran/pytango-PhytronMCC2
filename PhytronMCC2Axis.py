@@ -129,10 +129,7 @@ Limit direction +'''
     )
 
     # definition some constants
-    __STX = chr(2)         # Start of text
-    __ACK = chr(6)         # Command ok
     __NACK = chr(0x15)     # command failed
-    __ETX = chr(3)         # end of text
     __MOVE_UNIT = ("step", "mm", "inch", "degree")
     __LIM_PLUS = 2
     __LIM_MINUS = 1
@@ -318,18 +315,20 @@ Limit direction +'''
     # internal methods
     def _send_cmd(self, cmd):
         # building the string to send it
-        cmd = self.__STX + str(self.__Addr) + cmd + self.__ETX
+        cmd = str(self.__Addr) + cmd
         res = self.ctrl.write_read(cmd)
-        if self.__ACK in res:
-            res_encode = res.lstrip(self.__STX).lstrip(self.__ACK).rstrip(self.__ETX)
-        else:
-            res_encode = self.__NACK
+        if res == self.__NACK:
             self.set_state(DevState.FAULT)
-        self.debug_stream(res_encode)
-        return res_encode
+            self.warn_stream('command not acknowledged from controller '
+                             '-> Fault State')
+            return ''
+        self.debug_stream(res)
+        return res
     
     # commands
-    @command(dtype_in=str, dtype_out=str, doc_in='enter a command', doc_out='the answer')
+    @command(dtype_in=str, dtype_out=str,
+             doc_in='enter a command',
+             doc_out='the answer')
     def send_cmd(self, cmd):
         # add axis name (X, Y) to beginning of command
         return self._send_cmd(self.__Axis_Name + cmd)        
