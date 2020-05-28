@@ -381,6 +381,11 @@ Limit direction +"""
     def Stop(self):
         self.send_cmd("S")
         self.set_state(DevState.ON)
+        
+    @command
+    def Abort(self):
+        self.send_cmd("SN")
+        self.set_state(DevState.ON)
 
     @command(dtype_in=str, dtype_out=str, doc_in="step\nmm\ninch\ndegree",
              doc_out="the unit")
@@ -411,7 +416,8 @@ Limit direction +"""
     @command
     def write_to_eeprom(self):
         self.send_cmd("SA")
-        return "parameter written to flash memory"
+        self.info_stream("parameters written to EEPROM")
+        return "parameters written to EEPROM"
     
     @command(dtype_out=str)
     def dump_config(self):
