@@ -25,17 +25,35 @@ class PhytronMCC2Axis(Device):
     )
 
     # device attributes
-    limit_minus = attribute(
+    hw_limit_minus = attribute(
         dtype="bool",
-        label="limit -",
+        label="HW limit -",
         access=AttrWriteType.READ,
         display_level=DispLevel.OPERATOR,
     )
 
-    limit_plus = attribute(
+    hw_limit_plus = attribute(
         dtype="bool",
-        label="limit +",
+        label="HW limit +",
         access=AttrWriteType.READ,
+        display_level=DispLevel.OPERATOR,
+    )
+
+    sw_limit_minus = attribute(
+        dtype="float",
+        format="%8.3f",
+        label="SW limit -",
+        unit="steps",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.OPERATOR,
+    )
+    
+    sw_limit_plus = attribute(
+        dtype="float",
+        format="%8.3f",
+        label="SW limit +",
+        unit="steps",
+        access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.OPERATOR,
     )
 
@@ -134,8 +152,8 @@ Limit direction +"""
     __LIM_PLUS = 2
     __LIM_MINUS = 1
     # private status variables, updated by "mcc_state()"
-    __Limit_Minus = False
-    __Limit_Plus = False
+    __HW_Limit_Minus = False
+    __HW_Limit_Plus = False
     __Inverted = False
     __Alias = "mcc2"
     # other private variables
@@ -191,8 +209,8 @@ Limit direction +"""
         else:
             self.set_state(DevState.OFF)
         
-        self.info_stream("limit-: {0}".format(self.__Limit_Minus))
-        self.info_stream("limit+: {0}".format(self.__Limit_Plus))
+        self.info_stream("HW limit-: {0}".format(self.__HW_Limit_Minus))
+        self.info_stream("HW limit+: {0}".format(self.__HW_Limit_Plus))
 
     def delete_device(self):
         self.set_state(DevState.OFF)
@@ -201,22 +219,22 @@ Limit direction +"""
         answer = self._send_cmd("SE")
         if (self.__Axis == 0):
             if self.__Inverted:
-                self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_PLUS)
-                self.__Limit_Plus = bool(int(answer[2]) & self.__LIM_MINUS)
+                self.__HW_Limit_Minus = bool(int(answer[2]) & self.__LIM_PLUS)
+                self.__HW_Limit_Plus = bool(int(answer[2]) & self.__LIM_MINUS)
             else:
-                self.__Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
-                self.__Limit_Plus = bool(int(answer[2]) & self.__LIM_PLUS)
+                self.__HW_Limit_Minus = bool(int(answer[2]) & self.__LIM_MINUS)
+                self.__HW_Limit_Plus = bool(int(answer[2]) & self.__LIM_PLUS)
             moving = not(bool(int(answer[1]) & 1))
         else:
             if self.__Inverted:
-                self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_PLUS)
-                self.__Limit_Plus = bool(int(answer[6]) & self.__LIM_MINUS)
+                self.__HW_Limit_Minus = bool(int(answer[6]) & self.__LIM_PLUS)
+                self.__HW_Limit_Plus = bool(int(answer[6]) & self.__LIM_MINUS)
             else:
-                self.__Limit_Minus = bool(int(answer[6]) & self.__LIM_MINUS)
-                self.__Limit_Plus = bool(int(answer[6]) & self.__LIM_PLUS)
+                self.__HW_Limit_Minus = bool(int(answer[6]) & self.__LIM_MINUS)
+                self.__HW_Limit_Plus = bool(int(answer[6]) & self.__LIM_PLUS)
             moving = not(bool(int(answer[5]) & 1))
-        self.debug_stream("limit minus: {0}".format(self.__Limit_Minus))
-        self.debug_stream("limit plus: {0}".format(self.__Limit_Plus))
+        self.debug_stream("HW limit-: {0}".format(self.__HW_Limit_Minus))
+        self.debug_stream("HW limit+: {0}".format(self.__HW_Limit_Plus))
         if moving is False:
             self.set_status("Device in ON")
             self.debug_stream("device is: ON")
@@ -227,21 +245,35 @@ Limit direction +"""
             return DevState.MOVING
 
     def set_display_unit(self):
-        ac = self.get_attribute_config_3("position")[0]
-        ac.unit = self.__Unit
-        if (self.__Step_Per_Unit % 1) == 0.0:
-            ac.format = "%8d"
-        else:
-            ac.format = "%8.3f"
-        self.set_attribute_config_3(ac)
+        attributes = ["position", "sw_limit_minus", "sw_limit_plus"]
+        for attr in attributes:
+            ac = self.get_attribute_config(attr)
+            ac.unit = self.__Unit
+            if (self.__Step_Per_Unit % 1) == 0.0:
+                ac.format = "%8d"
+            else:
+                ac.format = "%8.3f"
+            self.set_attribute_config(ac)
 
     # attribute read/write methods
-    def read_limit_minus(self):
-        return self.__Limit_Minus
+    def read_hw_limit_minus(self):
+        return self.__HW_Limit_Minus
 
-    def read_limit_plus(self):
-        return self.__Limit_Plus
+    def read_hw_limit_plus(self):
+        return self.__HW_Limit_Plus
 
+    def read_sw_limit_minus(self):
+        return float(self.send_cmd("P24R"))
+
+    def write_sw_limit_minus(self, value):
+        self.send_cmd("P24S{:f}".format(value))
+
+    def read_sw_limit_plus(self):
+        return float(self.send_cmd("P23R"))
+
+    def write_sw_limit_plus(self, value):
+        self.send_cmd("P23S{:f}".format(value))
+    
     def read_position(self):
         ret = self.send_cmd("P20R")
         if self.__Inverted:
@@ -404,7 +436,7 @@ Limit direction +"""
 
     @command(dtype_out=str)
     def get_movement_unit(self):
-        answer = self.send_cmd(self.__Axis_Name + "P02R")
+        answer = self.send_cmd("P02R")
         self.__Unit = self.__MOVE_UNIT[int(answer)-1]
         return self.__Unit
 
