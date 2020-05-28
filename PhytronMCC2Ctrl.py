@@ -35,55 +35,61 @@ class PhytronMCC2Ctrl(Device):
         display_level=DispLevel.OPERATOR,
     )
 
-    # definition some constants
-    PARITIES = ["none", "odd", "even"]
-    FLOWCONTROL = ["none", "software", "hardware", "sw/hw"]
-    TERMINATOR = ["LF/CR", "CR/LF", "CR", "LF", "NONE"]
-    TERMINATORCHAR = ["\n\r", "\r\n", "\r", "\n", ""]
+    # connection settings
+    PARITY = serial.PARITY_NONE # serial.PARITY_NONE, serial.PARITY_ODD, serial.PARITY_EVEN
+    FLOWCONTROL = "none" # "none", "software", "hardware", "sw/hw"
+    TIMEOUT = 0
+    BYTESIZE = 8
+    STOPBITS = 1
     
+    # definition some constants
     __STX = chr(2)         # Start of text
     __ACK = chr(6)         # Command ok
     __NACK = chr(0x15)     # command failed
     __ETX = chr(3)         # end of text
 
     def init_device(self):
-        self.info_stream("In %s::init_device()" % self.get_name())
+        self.info_stream("init_device()")
         self.get_device_properties(self.get_device_class())
         self.set_state(DevState.OFF)
-
-        self.configure = True
+        
+        self.stopbits = 1
+        #serial.PARITY_NONE
+        self.timeout = 0
+        self.flowcontrol = PhytronMCC2Ctrl.FLOWCONTROL[0]
+        self.terminatorchar = chr(3)
+        
+        # configure serial
         self.serial = serial.Serial()
-
+        
         self.serial.baudrate = self.Baudrate
         self.serial.port = self.Port
+        self.serial.parity = self.PARITY      
+        self.serial.bytesize = self.BYTESIZE
+        self.serial.stopbits = self.STOPBITS        
+        self.serial.timeout = self.TIMEOUT
 
+        if self.FLOWCONTROL == "none":
+            self.serial.xonxoff = 0
+            self.serial.rtscts = 0
+        elif self.FLOWCONTROL == "software":
+            self.serial.xonxoff = 1
+            self.serial.rtscts = 0
+        elif self.FLOWCONTROL == "hardware":
+            self.serial.xonxoff = 0
+            self.serial.rtscts = 1
+        elif self.FLOWCONTROL == "sw/hw":
+            self.serial.xonxoff = 1
+            self.serial.rtscts = 1
+
+        self.info_stream("port: {:s}".format(self.Port))
+        self.info_stream("baudrate = {:d}".format(self.Baudrate))
         
-        self.info_stream("PhytronMCC2Ctrl.init_device: port = %s " % self.Port)
-        self.info_stream("PhytronMCC2Ctrl.init_device: baudrate = %s " % self.Baudrate)
-
-        self.bytesize = 8
-        self.serial.bytesize = self.bytesize
-
-        self.parity = PhytronMCC2Ctrl.PARITIES[0]
-        self.current_parity = self.parity
-        self.serial.parity = serial.PARITY_NONE
-
-        self.stopbits = 1
-        self.serial.stopbits = self.stopbits
-
-        self.timeout = 0
-        self.serial.timeout = self.timeout
-
-        self.flowcontrol = PhytronMCC2Ctrl.FLOWCONTROL[0]
-        self.current_flowcontrol = self.flowcontrol
-        self.serial.xonxoff = 0
-        self.serial.rtscts = 0
-
-        self.terminator = PhytronMCC2Ctrl.TERMINATOR[0]
-        self.terminatorchar = chr(3)    # end of text PhytronMcc2Ctrl.TERMINATORCHAR[0]
-
         # open serial port
         self.open()
+
+    def delete_device(self):
+        self.close()
 
     # attribute read/write methods
     def read_port(self):
@@ -95,60 +101,29 @@ class PhytronMCC2Ctrl(Device):
     # commands
     @command
     def open(self):
-        self.info_stream("In %s::open()" % self.get_name())
-
-        if self.configure:
-            self.serial.baudrate = self.Baudrate
-            self.serial.port = self.Port
-            self.serial.bytesize = self.bytesize
-            self.serial.stopbits = self.stopbits
-
-            self.serial.timeout = self.timeout
-            self.current_flowcontrol = self.flowcontrol
-
-            if self.current_flowcontrol == "none":
-                self.serial.xonxoff = 0
-                self.serial.rtscts = 0
-            elif self.current_flowcontrol == "software":
-                self.serial.xonxoff = 1
-                self.serial.rtscts = 0
-            elif self.current_flowcontrol == "hardware":
-                self.serial.xonxoff = 0
-                self.serial.rtscts = 1
-            elif self.current_flowcontrol == "sw/hw":
-                self.serial.xonxoff = 1
-                self.serial.rtscts = 1
-
-            self.current_parity = self.parity
-            if self.current_parity == PhytronMCC2Ctrl.PARITIES[0]:
-                self.serial.parity = serial.PARITY_NONE
-            elif self.current_parity == PhytronMCC2Ctrl.PARITIES[1]:
-                self.serial.parity = serial.PARITY_ODD
-            elif self.current_parity == PhytronMCC2Ctrl.PARITIES[1]:
-                self.serial.parity = serial.PARITY_EVEN
+        self.info_stream("open()")
 
         try:
             self.serial.open()
             self.set_state(DevState.ON)
-            self.configure = False
+            self.info_stream("connected to {:s}".format(self.Port))
         except Exception:
-            self.error_stream("PhytronMcc2Ctrl.open: failed to open %s " % self.Port)
+            self.error_stream("failed to open {:s}".format(self.Port))
             sys.exit(255)
-
-        self.info_stream("PhytronMcc2Ctrl.open: connected to %s " % self.Port)
 
     def is_open_allowed(self):
         if self.get_state() in [DevState.ON, DevState.FAULT]:
             return False
         return True
-
+    
     @command
     def close(self):
         try:
             self.serial.close()
             self.set_state(DevState.OFF)
+            self.info_stream("closed connection on {:s}".format(self.Port))
         except Exception:
-            pass
+            self.warn_stream("could not close connection on {:s}".format(self.Port))
 
     def is_close_allowed(self):
         if self.get_state() in [DevState.OFF]:
