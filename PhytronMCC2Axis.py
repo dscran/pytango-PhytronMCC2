@@ -8,15 +8,18 @@ import sys
 from enum import IntEnum
 
 class MovementType(IntEnum):
-    rotational = 0  # DevEnum's must start at 0
-    linear = 1  # and increment by 1
+    rotational = 0
+    linear = 1
 
 class MovementUnit(IntEnum):
-    # step, mm, inch, degree
     step = 0
     mm = 1
     inch = 2
     degree = 3
+
+class InitiatorType(IntEnum):
+    NCC = 0
+    NOC = 1
     
 class PhytronMCC2Axis(Device):
     # device properties
@@ -134,6 +137,13 @@ class PhytronMCC2Axis(Device):
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
+    
+    initiator_type = attribute(
+        dtype=InitiatorType,
+        label="initiator type",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+    ) 
 
     steps_per_unit = attribute(
         dtype="float",
@@ -362,6 +372,12 @@ Limit direction +"""
             return "input not in range 0..25"
         self.send_cmd("P40S{:d}".format(value))
 
+    def read_initiator_type(self):
+        return InitiatorType.NOC if bool(int(self.send_cmd("P27R"))) else InitiatorType.NCC
+
+    def write_initiator_type(self, value):
+        self.send_cmd("P27S{:d}".format(int(value)))
+
     def read_steps_per_unit(self):
         # inverse of spindle pitch (see manual page 50)
         self.__Steps_Per_Unit = int(1/float(self.send_cmd("P03R")))
@@ -369,7 +385,7 @@ Limit direction +"""
 
     def write_steps_per_unit(self, value):
         # inverse of spindle pitch (see manual page 50)
-        self.send_cmd("P03S{:f}".format(1/value))
+        self.send_cmd("P03S{:10.8f}".format(1/value))
         # update display unit
         self.set_display_unit()
 
