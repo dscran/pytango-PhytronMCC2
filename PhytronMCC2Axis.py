@@ -60,7 +60,7 @@ class PhytronMCC2Axis(Device):
         label="SW limit -",
         unit="steps",
         access=AttrWriteType.READ_WRITE,
-        display_level=DispLevel.OPERATOR,
+        display_level=DispLevel.EXPERT,
     )
     
     sw_limit_plus = attribute(
@@ -69,7 +69,7 @@ class PhytronMCC2Axis(Device):
         label="SW limit +",
         unit="steps",
         access=AttrWriteType.READ_WRITE,
-        display_level=DispLevel.OPERATOR,
+        display_level=DispLevel.EXPERT,
     )
 
     position = attribute(
@@ -167,6 +167,13 @@ class PhytronMCC2Axis(Device):
 16 = 1/16 step
 128 = 1/128 step
 256 = 1/256 step"""
+    )
+    
+    backlash_compensation = attribute(
+        dtype="float",
+        label="backlash compensation",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
     )
     
     type_of_movement = attribute(
@@ -412,6 +419,12 @@ Limit direction +"""
         if value not in [1, 2, 4, 8, 10, 16, 128, 256]:
             return "input not in [1, 2, 4, 8, 10, 16, 128, 256]"
         self.send_cmd("P45S{:d}".format(value))
+    
+    def read_backlash_compensation(self):
+        return float(self.send_cmd("P25R"))
+
+    def write_backlash_compensation(self, value):
+        self.send_cmd("P25S{:f}".format(value))
 
     def read_type_of_movement(self):
         return MovementType.linear if bool(int(self.send_cmd("P01R"))) else MovementType.rotational
