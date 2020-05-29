@@ -284,23 +284,35 @@ Limit direction +"""
         return self.__HW_Limit_Plus
 
     def read_sw_limit_minus(self):
-        return float(self.send_cmd("P24R"))
+        ret = float(self.send_cmd("P24R"))
+        if self.__Inverted:
+            return -1*ret
+        else:
+            return ret
 
     def write_sw_limit_minus(self, value):
+        if self.__Inverted:
+            value = -1*value
         self.send_cmd("P24S{:f}".format(value))
 
     def read_sw_limit_plus(self):
-        return float(self.send_cmd("P23R"))
+        ret = float(self.send_cmd("P23R"))
+        if self.__Inverted:
+            return -1*ret
+        else:
+            return ret
 
     def write_sw_limit_plus(self, value):
+        if self.__Inverted:
+            value = -1*value
         self.send_cmd("P23S{:f}".format(value))
     
     def read_position(self):
-        ret = self.send_cmd("P20R")
+        ret = float(self.send_cmd("P20R"))
         if self.__Inverted:
-            return -1*float(ret)
+            return -1*ret
         else:
-            return float(ret)
+            return ret
 
     def write_position(self, value):
         if self.__Inverted:
