@@ -5,8 +5,8 @@ After=multi-user.target
 
 [Service]
 EnvironmentFile=/etc/tangorc
-ExecStart=/home/pi/Tango_Devices/MCC2/PhytronMCC2.py mcc01
-WorkingDirectory=/home/pi/Tango_Devices/MCC2
+ExecStart=/home/pi/TangoDS/MCC2/PhytronMCC2.py mcc02 -v2
+WorkingDirectory=/home/pi/TangoDS/MCC2
 StandardOutput=journal
 StandardError=journal
 
