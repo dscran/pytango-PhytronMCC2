@@ -216,8 +216,8 @@ Limit direction +"""
     __Steps_Per_Unit = 1.0
 
     def init_device(self):
+        super().init_device()
         self.info_stream("init_device()")
-        self.get_device_properties(self.get_device_class())
 
         self.__Addr = self.Address
         self.__Axis = self.Axis
