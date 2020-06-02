@@ -449,18 +449,23 @@ Limit direction +"""
         self.read_movement_unit()
         self.set_display_unit()
 
-    # commands
-    @command(dtype_in=str, dtype_out=str, doc_in="enter a command", doc_out="the response")
-    def send_cmd(self, cmd):
-        # add module address and axis name (X, Y) to beginning of command
-        cmd = str(self.__Addr) + str(self.__Axis_Name) + cmd
+    # internal methods
+    def _send_cmd(self, cmd):
+        # add module address to beginning of command
+        cmd = str(self.__Addr) + cmd
         res = self.ctrl.write_read(cmd)
         if res == self.__NACK:
             self.set_state(DevState.FAULT)
             self.warn_stream("command not acknowledged from controller "
                              "-> Fault State")
             return ""
-        return res       
+        return res
+
+    # commands
+    @command(dtype_in=str, dtype_out=str, doc_in="enter a command", doc_out="the response")
+    def send_cmd(self, cmd):
+        # add axis name (X, Y) to beginning of command
+        return self._send_cmd(str(self.__Axis_Name) + cmd)       
 
     @command(dtype_out=str, doc_out="the firmware version")
     def read_firmware_version(self):
