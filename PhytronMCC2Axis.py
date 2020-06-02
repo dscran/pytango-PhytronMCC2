@@ -24,7 +24,7 @@ class InitiatorType(IntEnum):
 class PhytronMCC2Axis(Device):
     # device properties
     CtrlDevice = device_property(
-        dtype="str", default_value=""
+        dtype="str", default_value="/domain/family/member"
     )
 
     Axis = device_property(
@@ -36,7 +36,7 @@ class PhytronMCC2Axis(Device):
     )
 
     Alias = device_property(
-        dtype="str", default_value="MCC2"
+        dtype="str"
     )
 
     # device attributes
@@ -54,23 +54,23 @@ class PhytronMCC2Axis(Device):
         display_level=DispLevel.OPERATOR,
     )
 
-    sw_limit_minus = attribute(
-        dtype="float",
-        format="%8.3f",
-        label="SW limit -",
-        unit="steps",
-        access=AttrWriteType.READ_WRITE,
-        display_level=DispLevel.EXPERT,
-    )
+    # sw_limit_minus = attribute(
+    #     dtype="float",
+    #     format="%8.3f",
+    #     label="SW limit -",
+    #     unit="steps",
+    #     access=AttrWriteType.READ_WRITE,
+    #     display_level=DispLevel.EXPERT,
+    # )
     
-    sw_limit_plus = attribute(
-        dtype="float",
-        format="%8.3f",
-        label="SW limit +",
-        unit="steps",
-        access=AttrWriteType.READ_WRITE,
-        display_level=DispLevel.EXPERT,
-    )
+    # sw_limit_plus = attribute(
+    #     dtype="float",
+    #     format="%8.3f",
+    #     label="SW limit +",
+    #     unit="steps",
+    #     access=AttrWriteType.READ_WRITE,
+    #     display_level=DispLevel.EXPERT,
+    # )
 
     position = attribute(
         dtype="float",
@@ -316,29 +316,29 @@ Limit direction +"""
     def read_hw_limit_plus(self):
         return self.__HW_Limit_Plus
 
-    def read_sw_limit_minus(self):
-        ret = float(self.send_cmd("P24R"))
-        if self.__Inverted:
-            return -1*ret
-        else:
-            return ret
-
-    def write_sw_limit_minus(self, value):
-        if self.__Inverted:
-            value = -1*value
-        self.send_cmd("P24S{:f}".format(value))
-
-    def read_sw_limit_plus(self):
-        ret = float(self.send_cmd("P23R"))
-        if self.__Inverted:
-            return -1*ret
-        else:
-            return ret
-
-    def write_sw_limit_plus(self, value):
-        if self.__Inverted:
-            value = -1*value
-        self.send_cmd("P23S{:f}".format(value))
+#     def read_sw_limit_minus(self):
+#         ret = float(self.send_cmd("P24R"))
+#         if self.__Inverted:
+#             return -1*ret
+#         else:
+#             return ret
+# 
+#     def write_sw_limit_minus(self, value):
+#         if self.__Inverted:
+#             value = -1*value
+#         self.send_cmd("P24S{:f}".format(value))
+# 
+#     def read_sw_limit_plus(self):
+#         ret = float(self.send_cmd("P23R"))
+#         if self.__Inverted:
+#             return -1*ret
+#         else:
+#             return ret
+# 
+#     def write_sw_limit_plus(self, value):
+#         if self.__Inverted:
+#             value = -1*value
+#         self.send_cmd("P23S{:f}".format(value))
     
     def read_position(self):
         ret = float(self.send_cmd("P20R"))
@@ -449,27 +449,20 @@ Limit direction +"""
         self.read_movement_unit()
         self.set_display_unit()
 
-    # internal methods
-    def _send_cmd(self, cmd):
-        # add module address to the beginning of command
-        cmd = str(self.__Addr) + cmd
+    # commands
+    @command(dtype_in=str, dtype_out=str, doc_in="enter a command", doc_out="the response")
+    def send_cmd(self, cmd):
+        # add module address and axis name (X, Y) to beginning of command
+        cmd = str(self.__Addr) + str(self.__Axis_Name) + cmd
         res = self.ctrl.write_read(cmd)
         if res == self.__NACK:
             self.set_state(DevState.FAULT)
             self.warn_stream("command not acknowledged from controller "
                              "-> Fault State")
             return ""
-        return res
-    
-    # commands
-    @command(dtype_in=str, dtype_out=str,
-             doc_in="enter a command",
-             doc_out="the response")
-    def send_cmd(self, cmd):
-        # add axis name (X, Y) to beginning of command
-        return self._send_cmd(self.__Axis_Name + cmd)        
+        return res       
 
-    @command(dtype_out=str, doc_out="the version of firmware")
+    @command(dtype_out=str, doc_out="the firmware version")
     def read_firmware_version(self):
         version = self._send_cmd("IVR")
         return version
@@ -481,7 +474,7 @@ Limit direction +"""
         self.send_cmd("P20S{:.4f}".format(value))
 
     @command
-    def Jog_Plus(self):
+    def jog_plus(self):
         if self.__Inverted:
             self.send_cmd("L-")
         else:
@@ -489,7 +482,7 @@ Limit direction +"""
         self.set_state(DevState.MOVING)
 
     @command
-    def Jog_Minus(self):
+    def jog_minus(self):
         if self.__Inverted:
             self.send_cmd("L+")
         else:
@@ -497,7 +490,7 @@ Limit direction +"""
         self.set_state(DevState.MOVING)
 
     @command
-    def Homing_Plus(self):
+    def homing_plus(self):
         if self.__Inverted:
             self.send_cmd("0-")
         else:
@@ -505,7 +498,7 @@ Limit direction +"""
         self.set_state(DevState.MOVING)
 
     @command
-    def Homing_Minus(self):
+    def homing_minus(self):
         if self.__Inverted:
             self.send_cmd("0+")
         else:
@@ -513,12 +506,12 @@ Limit direction +"""
         self.set_state(DevState.MOVING)
 
     @command
-    def Stop(self):
+    def stop(self):
         self.send_cmd("S")
         self.set_state(DevState.ON)
         
     @command
-    def Abort(self):
+    def abort(self):
         self.send_cmd("SN")
         self.set_state(DevState.ON)
 
@@ -527,7 +520,7 @@ Limit direction +"""
         self.__Alias = mcc_name
         self.db.put_device_property(self.get_name(), {"Alias": mcc_name})
 
-    @command
+    @command(dtype_out=str)
     def write_to_eeprom(self):
         self.send_cmd("SA")
         self.info_stream("parameters written to EEPROM")
