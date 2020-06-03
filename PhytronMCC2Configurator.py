@@ -1,7 +1,8 @@
 from tango import DeviceProxy
 
+
 class PhytronMMC2Configurator():
-    
+
     default_config = {
         1: [0, 'Type of movement'],
         2: [1, 'Measuring units of movement'],
@@ -39,7 +40,7 @@ class PhytronMMC2Configurator():
         46: [1, 'Current Shaping (CS)'],
         47: [1, 'Chopper frequency'],
     }
-    
+
     def __init__(self, device):
         self.proxy = DeviceProxy(device)
         self.current_config = {}
@@ -52,7 +53,7 @@ class PhytronMMC2Configurator():
         for line in buf:
             [param, value] = line.strip().split(':')
             self.current_config[int(param.replace('P', ''))] = float(value.strip())
-        
+
     def compare_configs(self, read_current_config=True):
         if read_current_config:
             self.read_current_config()
@@ -60,15 +61,15 @@ class PhytronMMC2Configurator():
         print('======================================================================')
         for param, val_list in self.default_config.items():
             curr_value = self.current_config[param]
-            print('P{:02d}: {:10.2f}\t{:10.2f}\t{:s}\t{:s}'.format(param,
-                                                                 val_list[0],
-                                                                 curr_value,
-                                                                 'same' if curr_value == val_list[0] else 'changed',
-                                                                val_list[1],))
-            
+            print('P{:02d}: {:10.2f}\t{:10.2f}'
+                  '\t{:s}\t{:s}'.format(param,
+                                        val_list[0],
+                                        curr_value,
+                                        'same' if curr_value == val_list[0] else 'changed',
+                                        val_list[1],))
+
     def reset_to_default(self):
         for param, value in self.default_config.items():
             cmd = 'P{:02d}S{:f}'.format(param, value)
             print(cmd)
-            res = self.proxy.send_cmd(cmd)
-            
+            _ = self.proxy.send_cmd(cmd)

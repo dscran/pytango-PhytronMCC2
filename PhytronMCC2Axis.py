@@ -1,15 +1,17 @@
 #!/usr/bin/python3 -u
 # coding: utf8
 # PhytronMCC2Axis
-from tango import Database, Except, AttrWriteType, DevState, DeviceProxy, DispLevel
+from tango import Database, DevFailed, AttrWriteType, DevState, DeviceProxy, DispLevel
 from tango.server import device_property
 from tango.server import Device, attribute, command
 import sys
 from enum import IntEnum
 
+
 class MovementType(IntEnum):
     rotational = 0
     linear = 1
+
 
 class MovementUnit(IntEnum):
     step = 0
@@ -17,10 +19,12 @@ class MovementUnit(IntEnum):
     inch = 2
     degree = 3
 
+
 class InitiatorType(IntEnum):
     NCC = 0
     NOC = 1
-    
+
+
 class PhytronMCC2Axis(Device):
     # device properties
     CtrlDevice = device_property(
@@ -62,7 +66,7 @@ class PhytronMCC2Axis(Device):
     #     access=AttrWriteType.READ_WRITE,
     #     display_level=DispLevel.EXPERT,
     # )
-    
+
     # sw_limit_plus = attribute(
     #     dtype="float",
     #     format="%8.3f",
@@ -137,13 +141,13 @@ class PhytronMCC2Axis(Device):
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
-    
+
     initiator_type = attribute(
         dtype=InitiatorType,
         label="initiator type",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
-    ) 
+    )
 
     steps_per_unit = attribute(
         dtype="float",
@@ -152,7 +156,7 @@ class PhytronMCC2Axis(Device):
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
-    
+
     step_resolution = attribute(
         dtype="int",
         label="step resolution",
@@ -168,7 +172,7 @@ class PhytronMCC2Axis(Device):
 128 = 1/128 step
 256 = 1/256 step"""
     )
-    
+
     backlash_compensation = attribute(
         dtype="float",
         label="backlash compensation",
@@ -176,7 +180,7 @@ class PhytronMCC2Axis(Device):
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
-    
+
     type_of_movement = attribute(
         dtype=MovementType,
         label="type of movement",
@@ -191,7 +195,7 @@ for XY tables or other linear systems,
 Mechanical zero and limit direction -
 Limit direction +"""
     )
-    
+
     movement_unit = attribute(
         dtype=MovementUnit,
         label="unit",
@@ -232,12 +236,12 @@ Limit direction +"""
         self.info_stream("module address: {:d}".format(self.Address))
         self.info_stream("module axis: {:d}".format(self.Axis))
         self.info_stream("alias: {:s}".format(self.Alias))
-        
+
         try:
             self.ctrl = DeviceProxy(self.CtrlDevice)
             self.info_stream("ctrl. device: {:s}".format(self.CtrlDevice))
-        except Exception:
-            self.error_stream("failed to create proxy to {:s}".format(self.CtrlDevice))
+        except DevFailed as df:
+            self.error_stream("failed to create proxy to {:s}".format(df))
             sys.exit(255)
 
         # check if the CrlDevice ON, if not open the serial port
@@ -261,7 +265,7 @@ Limit direction +"""
             self.set_state(DevState.ON)
         else:
             self.set_state(DevState.OFF)
-        
+
         self.info_stream("HW limit-: {0}".format(self.__HW_Limit_Minus))
         self.info_stream("HW limit+: {0}".format(self.__HW_Limit_Plus))
 
@@ -298,7 +302,7 @@ Limit direction +"""
             return DevState.MOVING
 
     def set_display_unit(self):
-        attributes = [b"position"] # , b"sw_limit_minus", b"sw_limit_plus"]
+        attributes = [b"position"]  # , b"sw_limit_minus", b"sw_limit_plus"]
         for attr in attributes:
             ac3 = self.get_attribute_config_3(attr)
             ac3[0].unit = self.__Unit.name.encode("utf-8")
@@ -321,24 +325,24 @@ Limit direction +"""
 #             return -1*ret
 #         else:
 #             return ret
-# 
+#
 #     def write_sw_limit_minus(self, value):
 #         if self.__Inverted:
 #             value = -1*value
 #         self.send_cmd("P24S{:f}".format(value))
-# 
+#
 #     def read_sw_limit_plus(self):
 #         ret = float(self.send_cmd("P23R"))
 #         if self.__Inverted:
 #             return -1*ret
 #         else:
 #             return ret
-# 
+#
 #     def write_sw_limit_plus(self, value):
 #         if self.__Inverted:
 #             value = -1*value
 #         self.send_cmd("P23S{:f}".format(value))
-    
+
     def read_position(self):
         ret = float(self.send_cmd("P20R"))
         if self.__Inverted:
@@ -418,7 +422,7 @@ Limit direction +"""
         if value not in [1, 2, 4, 8, 10, 16, 128, 256]:
             return "input not in [1, 2, 4, 8, 10, 16, 128, 256]"
         self.send_cmd("P45S{:d}".format(value))
-    
+
     def read_backlash_compensation(self):
         return float(self.send_cmd("P25R"))
 
@@ -464,7 +468,7 @@ Limit direction +"""
     @command(dtype_in=str, dtype_out=str, doc_in="enter a command", doc_out="the response")
     def send_cmd(self, cmd):
         # add axis name (X, Y) to beginning of command
-        return self._send_cmd(str(self.__Axis_Name) + cmd)       
+        return self._send_cmd(str(self.__Axis_Name) + cmd)
 
     @command(dtype_out=str, doc_out="the firmware version")
     def read_firmware_version(self):
@@ -513,7 +517,7 @@ Limit direction +"""
     def stop(self):
         self.send_cmd("S")
         self.set_state(DevState.ON)
-        
+
     @command
     def abort(self):
         self.send_cmd("SN")
@@ -529,7 +533,7 @@ Limit direction +"""
         self.send_cmd("SA")
         self.info_stream("parameters written to EEPROM")
         return "parameters written to EEPROM"
-    
+
     @command(dtype_out=str)
     def dump_config(self):
         parameters = range(1, 50)
