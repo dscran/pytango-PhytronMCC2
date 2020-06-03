@@ -174,7 +174,7 @@ class PhytronMCC2Axis(Device):
     )
 
     backlash_compensation = attribute(
-        dtype="float",
+        dtype="int",
         label="backlash compensation",
         unit="step",
         access=AttrWriteType.READ_WRITE,
