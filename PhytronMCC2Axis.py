@@ -172,6 +172,7 @@ class PhytronMCC2Axis(Device):
     backlash_compensation = attribute(
         dtype="float",
         label="backlash compensation",
+        unit="step",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
@@ -212,7 +213,7 @@ Limit direction +"""
     __Addr = 0
     __Axis = 0
     __Axis_Name = ""
-    __Unit = "step"
+    __Unit = MovementUnit.step
     __Steps_Per_Unit = 1.0
 
     def init_device(self):
@@ -297,17 +298,15 @@ Limit direction +"""
             return DevState.MOVING
 
     def set_display_unit(self):
-        attributes = ["position", "sw_limit_minus", "sw_limit_plus"]
-        self.warn_stream("cannot set unit for position and sw limits dynamically")
-        self.info_stream(str(self.__Unit))
-        #for attr in attributes:
-        #    ac = self.get_attribute_config(attr)
-        #    ac.unit = self.__Unit
-        #    if (self.__Step_Per_Unit % 1) == 0.0:
-        #        ac.format = "%8d"
-        #    else:
-        #        ac.format = "%8.3f"
-        #    self.set_attribute_config(ac)
+        attributes = [b"position"] # , b"sw_limit_minus", b"sw_limit_plus"]
+        for attr in attributes:
+            ac3 = self.get_attribute_config_3(attr)
+            ac3[0].unit = self.__Unit.name.encode("utf-8")
+            if (self.__Steps_Per_Unit % 1) == 0.0:
+                ac3[0].format = b"%8d"
+            else:
+                ac3[0].format = b"%8.3f"
+            self.set_attribute_config_3(ac3)
 
     # attribute read/write methods
     def read_hw_limit_minus(self):
