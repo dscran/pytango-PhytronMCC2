@@ -68,8 +68,17 @@ class PhytronMCC2Configurator():
                                         'same' if curr_value == val_list[0] else 'changed',
                                         val_list[1],))
 
-    def reset_to_default(self):
-        for param, value in self.default_config.items():
-            cmd = 'P{:02d}S{:f}'.format(param, value)
-            print(cmd)
+    def reset_to_default(self, save_to_eeprom=False):
+        print('Setting the following default parameters:')
+        print('=========================================')
+        for param, val_list in self.default_config.items():
+            cmd = 'P{:02d}S{:f}'.format(param, val_list[0])
+            print('P{:02d}: {:10.2f}\t{:s}'.format(param, val_list[0], val_list[1],))
             _ = self.proxy.send_cmd(cmd)
+        print('=========================================')
+        if save_to_eeprom:
+            self.proxy.write_to_eeprom()
+            print('Config permanently saved to EEPROM')
+        else:
+            print('Config NOT permanently saved to EEPROM')
+            print('Use save_to_eeprom=True as parameter')
