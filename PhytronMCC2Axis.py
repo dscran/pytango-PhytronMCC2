@@ -301,17 +301,6 @@ Limit direction +"""
             self.debug_stream("device is: MOVING")
             return DevState.MOVING
 
-    def set_display_unit(self):
-        attributes = [b"position"]  # , b"sw_limit_minus", b"sw_limit_plus"]
-        for attr in attributes:
-            ac3 = self.get_attribute_config_3(attr)
-            ac3[0].unit = self.__Unit.name.encode("utf-8")
-            if (self.__Steps_Per_Unit % 1) == 0.0:
-                ac3[0].format = b"%8d"
-            else:
-                ac3[0].format = b"%8.3f"
-            self.set_attribute_config_3(ac3)
-
     # attribute read/write methods
     def read_hw_limit_minus(self):
         return self.__HW_Limit_Minus
@@ -453,6 +442,17 @@ Limit direction +"""
         self.set_display_unit()
 
     # internal methods
+    def set_display_unit(self):
+        attributes = [b"position"]  # , b"sw_limit_minus", b"sw_limit_plus"]
+        for attr in attributes:
+            ac3 = self.get_attribute_config_3(attr)
+            ac3[0].unit = self.__Unit.name.encode("utf-8")
+            if (1/self.__Steps_Per_Unit % 1) == 0.0:
+                ac3[0].format = b"%8d"
+            else:
+                ac3[0].format = b"%8.3f"
+            self.set_attribute_config_3(ac3)
+
     def _send_cmd(self, cmd):
         # add module address to beginning of command
         cmd = str(self.__Addr) + cmd
