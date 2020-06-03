@@ -416,7 +416,7 @@ Limit direction +"""
         return int(self.send_cmd("P25R"))
 
     def write_backlash_compensation(self, value):
-        self.send_cmd("P25S{:d}".format(value))
+        self.send_cmd("P25S{:d}".format(int(value)))
 
     def read_type_of_movement(self):
         return MovementType.linear if bool(int(self.send_cmd("P01R"))) else MovementType.rotational
