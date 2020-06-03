@@ -1,7 +1,7 @@
 from tango import DeviceProxy
 
 
-class PhytronMMC2Configurator():
+class PhytronMCC2Configurator():
 
     default_config = {
         1: [0, 'Type of movement'],
