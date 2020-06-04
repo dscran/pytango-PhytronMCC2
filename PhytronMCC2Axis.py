@@ -58,23 +58,23 @@ class PhytronMCC2Axis(Device):
         display_level=DispLevel.OPERATOR,
     )
 
-    # sw_limit_minus = attribute(
-    #     dtype="float",
-    #     format="%8.3f",
-    #     label="SW limit -",
-    #     unit="steps",
-    #     access=AttrWriteType.READ_WRITE,
-    #     display_level=DispLevel.EXPERT,
-    # )
+    sw_limit_minus = attribute(
+        dtype="float",
+        format="%8.3f",
+        label="SW limit -",
+        unit="steps",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+    )
 
-    # sw_limit_plus = attribute(
-    #     dtype="float",
-    #     format="%8.3f",
-    #     label="SW limit +",
-    #     unit="steps",
-    #     access=AttrWriteType.READ_WRITE,
-    #     display_level=DispLevel.EXPERT,
-    # )
+    sw_limit_plus = attribute(
+        dtype="float",
+        format="%8.3f",
+        label="SW limit +",
+        unit="steps",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+    )
 
     position = attribute(
         dtype="float",
@@ -204,19 +204,14 @@ Limit direction +"""
         doc="Allowed unit values are step, mm, inch, degree"
     )
 
-    # definition some constants
+    # private class properties
     __NACK = chr(0x15)     # command failed
     __LIM_PLUS = 2
     __LIM_MINUS = 1
-    # private status variables, updated by "mcc_state()"
+    __Axis_Name = ''
     __HW_Limit_Minus = False
     __HW_Limit_Plus = False
     __Inverted = False
-    __Alias = "mcc2"
-    # other private variables
-    __Addr = 0
-    __Axis = 0
-    __Axis_Name = ""
     __Unit = MovementUnit.step
     __Steps_Per_Unit = 1.0
 
@@ -224,11 +219,7 @@ Limit direction +"""
         super().init_device()
         self.info_stream("init_device()")
 
-        self.__Addr = self.Address
-        self.__Axis = self.Axis
-        self.__Alias = self.Alias
-
-        if self.__Axis == 0:
+        if self.Axis == 0:
             self.__Axis_Name = "X"
         else:
             self.__Axis_Name = "Y"
@@ -274,7 +265,7 @@ Limit direction +"""
 
     def dev_state(self):
         answer = self._send_cmd("SE")
-        if (self.__Axis == 0):
+        if (self.Axis == 0):
             if self.__Inverted:
                 self.__HW_Limit_Minus = bool(int(answer[2]) & self.__LIM_PLUS)
                 self.__HW_Limit_Plus = bool(int(answer[2]) & self.__LIM_MINUS)
@@ -308,29 +299,29 @@ Limit direction +"""
     def read_hw_limit_plus(self):
         return self.__HW_Limit_Plus
 
-#     def read_sw_limit_minus(self):
-#         ret = float(self.send_cmd("P24R"))
-#         if self.__Inverted:
-#             return -1*ret
-#         else:
-#             return ret
-#
-#     def write_sw_limit_minus(self, value):
-#         if self.__Inverted:
-#             value = -1*value
-#         self.send_cmd("P24S{:f}".format(value))
-#
-#     def read_sw_limit_plus(self):
-#         ret = float(self.send_cmd("P23R"))
-#         if self.__Inverted:
-#             return -1*ret
-#         else:
-#             return ret
-#
-#     def write_sw_limit_plus(self, value):
-#         if self.__Inverted:
-#             value = -1*value
-#         self.send_cmd("P23S{:f}".format(value))
+    def read_sw_limit_minus(self):
+        ret = float(self.send_cmd("P24R"))
+        if self.__Inverted:
+            return -1*ret
+        else:
+            return ret
+
+    def write_sw_limit_minus(self, value):
+        if self.__Inverted:
+            value = -1*value
+        self.send_cmd("P24S{:f}".format(value))
+
+    def read_sw_limit_plus(self):
+        ret = float(self.send_cmd("P23R"))
+        if self.__Inverted:
+            return -1*ret
+        else:
+            return ret
+
+    def write_sw_limit_plus(self, value):
+        if self.__Inverted:
+            value = -1*value
+        self.send_cmd("P23S{:f}".format(value))
 
     def read_position(self):
         ret = float(self.send_cmd("P20R"))
@@ -371,7 +362,6 @@ Limit direction +"""
         return float(self.send_cmd("P41R"))/10
 
     def write_run_current(self, value):
-        # motor run current (see manual page 54)
         value = int(value*10)
         if value not in range(1, 26):
             return "input not in range 1..25"
@@ -381,7 +371,6 @@ Limit direction +"""
         return float(self.send_cmd("P40R"))/10
 
     def write_hold_current(self, value):
-        # motor hold current (see manual page 54)
         value = int(value*10)
         if value not in range(1, 26):
             return "input not in range 0..25"
@@ -455,7 +444,7 @@ Limit direction +"""
 
     def _send_cmd(self, cmd):
         # add module address to beginning of command
-        cmd = str(self.__Addr) + cmd
+        cmd = str(self.Address) + cmd
         res = self.ctrl.write_read(cmd)
         if res == self.__NACK:
             self.set_state(DevState.FAULT)
@@ -524,9 +513,9 @@ Limit direction +"""
         self.set_state(DevState.ON)
 
     @command(dtype_in=str)
-    def set_alias(self, mcc_name):
-        self.__Alias = mcc_name
-        self.db.put_device_property(self.get_name(), {"Alias": mcc_name})
+    def set_alias(self, name):
+        self.Alias = mcc_name
+        self.db.put_device_property(self.get_name(), {"Alias": name})
 
     @command(dtype_out=str)
     def write_to_eeprom(self):
