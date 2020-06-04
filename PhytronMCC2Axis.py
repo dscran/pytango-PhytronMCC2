@@ -432,7 +432,7 @@ Limit direction +"""
 
     # internal methods
     def set_display_unit(self):
-        attributes = [b"position"]  # , b"sw_limit_minus", b"sw_limit_plus"]
+        attributes = [b"position", b"sw_limit_minus", b"sw_limit_plus"]
         for attr in attributes:
             ac3 = self.get_attribute_config_3(attr)
             ac3[0].unit = self.__Unit.name.encode("utf-8")
@@ -514,7 +514,7 @@ Limit direction +"""
 
     @command(dtype_in=str)
     def set_alias(self, name):
-        self.Alias = mcc_name
+        self.Alias = name
         self.db.put_device_property(self.get_name(), {"Alias": name})
 
     @command(dtype_out=str)
