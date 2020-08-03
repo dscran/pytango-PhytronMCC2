@@ -519,7 +519,7 @@ Limit direction +"""
 
     @command(dtype_out=str)
     def write_to_eeprom(self):
-        self.send_cmd("SA")
+        self._send_cmd("SA")
         self.info_stream("parameters written to EEPROM")
         return "parameters written to EEPROM"
 
