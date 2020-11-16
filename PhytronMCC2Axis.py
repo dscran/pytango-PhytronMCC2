@@ -28,7 +28,7 @@ class InitiatorType(IntEnum):
 class PhytronMCC2Axis(Device):
     # device properties
     CtrlDevice = device_property(
-        dtype="str", default_value="/domain/family/member"
+        dtype="str", default_value="domain/family/member"
     )
 
     Axis = device_property(
