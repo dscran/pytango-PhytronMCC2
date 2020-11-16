@@ -65,15 +65,6 @@ e.g.
 
     sxr/PhytronMCC2/ctrl01
 
-### Systemd Service
-
-Copy the file `tango_mcc2.service` to `/etc/systemd/system` and make it executable `sudo chmod +x tango_mcc2.service`.
-Check that the paths and are set correctly in the file. Then enable it as a system service by:
-
-    sudo systemctl daemon-reload 
-    sudo systemctl start tango_mcc2.service
-    sudo systemctl enable tango_mcc2.service
-
 ### Adding Axis programatically
 
 The script `add_new_device.py` gives an example how to add a new axis to the Tango DB without using Jive.
