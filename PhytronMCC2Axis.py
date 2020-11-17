@@ -120,6 +120,15 @@ class PhytronMCC2Axis(Device):
         display_level=DispLevel.EXPERT,
     )
 
+    homing_velocity = attribute(
+        dtype="int",
+        label="homing velocity",
+        unit="Hz",
+        min_value=0,
+        max_value=40000,
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+    )
     hold_current = attribute(
         dtype="float",
         label="hold current",
@@ -357,6 +366,12 @@ Limit direction +"""
 
     def write_velocity(self, value):
         self.send_cmd("P14S{:d}".format(value))
+
+    def read_homing_velocity(self):
+        return int(self.send_cmd("P08R"))
+
+    def write_homing_velocity(self, value):
+        self.send_cmd("P08S{:d}".format(value))
 
     def read_run_current(self):
         return float(self.send_cmd("P41R"))/10
