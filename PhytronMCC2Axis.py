@@ -159,7 +159,7 @@ class PhytronMCC2Axis(Device):
     )
 
     steps_per_unit = attribute(
-        dtype="int",
+        dtype="float",
         format="%10d",
         label="steps per unit",
         access=AttrWriteType.READ_WRITE,
