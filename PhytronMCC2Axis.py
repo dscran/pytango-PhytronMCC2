@@ -253,9 +253,9 @@ Limit direction +"""
 
         if ("MCC" in self.read_firmware_version()):
             # read memorized attributes from Database
-            db = Database()
+            self.db = Database()
             try:
-                attr = db.get_device_attribute_property(self.get_name(), ["inverted"])
+                attr = self.db.get_device_attribute_property(self.get_name(), ["inverted"])
                 if attr["inverted"]["__value"][0] == "true":
                     self.__Inverted = True
                 else:
