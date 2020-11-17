@@ -384,7 +384,7 @@ Limit direction +"""
 
     def read_steps_per_unit(self):
         # inverse of spindle pitch (see manual page 50)
-        self.__Steps_Per_Unit = int(1/float(self.send_cmd("P03R")))
+        self.__Steps_Per_Unit = float(1/float(self.send_cmd("P03R")))
         return self.__Steps_Per_Unit
 
     def write_steps_per_unit(self, value):
