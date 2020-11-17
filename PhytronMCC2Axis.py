@@ -159,8 +159,8 @@ class PhytronMCC2Axis(Device):
     )
 
     steps_per_unit = attribute(
-        dtype="float",
-        format="%13.3f",
+        dtype="int",
+        format="%10d",
         label="steps per unit",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
@@ -399,7 +399,7 @@ Limit direction +"""
 
     def read_steps_per_unit(self):
         # inverse of spindle pitch (see manual page 50)
-        self.__Steps_Per_Unit = float(1/float(self.send_cmd("P03R")))
+        self.__Steps_Per_Unit = int(1/float(self.send_cmd("P03R")))
         return self.__Steps_Per_Unit
 
     def write_steps_per_unit(self, value):
