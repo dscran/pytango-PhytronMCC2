@@ -402,7 +402,7 @@ Limit direction +"""
         self.send_cmd("P45S{:d}".format(value))
 
     def read_backlash_compensation(self):
-        res = int(self.send_cmd("P25R"))
+        ret = int(self.send_cmd("P25R"))
         if self.__Inverted:
             return -1*ret
         else:
