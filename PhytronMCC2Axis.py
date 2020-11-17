@@ -151,7 +151,7 @@ class PhytronMCC2Axis(Device):
 
     steps_per_unit = attribute(
         dtype="float",
-        format="%10d",
+        format="%13.3f",
         label="steps per unit",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
@@ -402,9 +402,15 @@ Limit direction +"""
         self.send_cmd("P45S{:d}".format(value))
 
     def read_backlash_compensation(self):
-        return int(self.send_cmd("P25R"))
+        res = int(self.send_cmd("P25R"))
+        if self.__Inverted:
+            return -1*ret
+        else:
+            return ret
 
     def write_backlash_compensation(self, value):
+        if self.__Inverted:
+            value = -1*value
         self.send_cmd("P25S{:d}".format(int(value)))
 
     def read_type_of_movement(self):
