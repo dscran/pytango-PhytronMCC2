@@ -378,8 +378,8 @@ Limit direction +"""
 
     def write_run_current(self, value):
         value = int(value*10)
-        if value not in range(1, 26):
-            return "input not in range 1..25"
+        if value not in range(0, 26):
+            return "input not in range 0..25"
         self.send_cmd("P41S{:d}".format(value))
 
     def read_hold_current(self):
@@ -387,7 +387,7 @@ Limit direction +"""
 
     def write_hold_current(self, value):
         value = int(value*10)
-        if value not in range(1, 26):
+        if value not in range(0, 26):
             return "input not in range 0..25"
         self.send_cmd("P40S{:d}".format(value))
 
