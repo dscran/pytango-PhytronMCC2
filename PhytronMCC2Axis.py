@@ -160,7 +160,7 @@ class PhytronMCC2Axis(Device):
 
     steps_per_unit = attribute(
         dtype="float",
-        format="%10d",
+        format="%10.1f",
         label="steps per unit",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
@@ -342,7 +342,7 @@ Limit direction +"""
     def write_position(self, value):
         if self.__Inverted:
             value = -1*value
-        answer = self.send_cmd("A{:.4f}".format(value))
+        answer = self.send_cmd("A{:.10f}".format(value))
         if answer != self.__NACK:
             self.set_state(DevState.MOVING)
 
@@ -399,7 +399,7 @@ Limit direction +"""
 
     def read_steps_per_unit(self):
         # inverse of spindle pitch (see manual page 50)
-        self.__Steps_Per_Unit = int(1/float(self.send_cmd("P03R")))
+        self.__Steps_Per_Unit = 1/float(self.send_cmd("P03R"))
         return self.__Steps_Per_Unit
 
     def write_steps_per_unit(self, value):
