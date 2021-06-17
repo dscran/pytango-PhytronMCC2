@@ -76,7 +76,7 @@ class PhytronMCC2Ctrl(Device):
             self.serial.rtscts = 1
 
         self.info_stream("port: {:s}".format(self.Port))
-        self.info_stream("baudrate = {:d}".format(self.Baudrate))
+        self.info_stream("baudrate = {:s}".format(self.Baudrate))
 
         # open serial port
         self.open()
