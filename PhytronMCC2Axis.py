@@ -272,7 +272,7 @@ Limit direction +"""
     def delete_device(self):
         self.set_state(DevState.OFF)
 
-    def dev_state(self):
+    def always_executed_hook(self):
         answer = self._send_cmd("SE")
         if (self.Axis == 0):
             if self.__Inverted:
@@ -294,12 +294,12 @@ Limit direction +"""
         self.debug_stream("HW limit+: {0}".format(self.__HW_Limit_Plus))
         if moving is False:
             self.set_status("Device in ON")
+            self.set_state(DevState.ON)
             self.debug_stream("device is: ON")
-            return DevState.ON
         else:
             self.set_status("Device is MOVING")
+            self.set_state(DevState.MOVING)
             self.debug_stream("device is: MOVING")
-            return DevState.MOVING
 
     # attribute read/write methods
     def read_hw_limit_minus(self):
