@@ -92,6 +92,30 @@ class PhytronMCC2Axis(Device):
         display_level=DispLevel.OPERATOR,
     )
 
+    pos_P19 = attribute(
+        dtype="float",
+        format="%8.3f",
+        label="position E (P19)",
+        access=AttrWriteType.READ,
+        display_level=DispLevel.EXPERT
+    )
+
+    pos_P20 = attribute(
+        dtype="float",
+        format="%8.3f",
+        label="position M (P20)",
+        access=AttrWriteType.READ,
+        display_level=DispLevel.EXPERT
+    )
+
+    pos_P21 = attribute(
+        dtype="float",
+        format="%8.3f",
+        label="position enc (P21)",
+        access=AttrWriteType.READ,
+        display_level=DispLevel.EXPERT
+    )
+
     alias = attribute(
         dtype="string",
         label="alias",
@@ -241,7 +265,7 @@ Limit direction +"""
     encoder_conversion = attribute(
         dtype="float",
         format="%10.1f",
-        label="movement unit per encoder increment",
+        label="encoder steps per unit",
         access=AttrWriteType.READ_WRITE,
         display_level=DispLevel.EXPERT,
     )
@@ -256,6 +280,7 @@ Limit direction +"""
     __Inverted = False
     __Unit = MovementUnit.step
     __Steps_Per_Unit = 1.0
+    __Encoder = EncoderType.none
 
     def init_device(self):
         super().init_device()
@@ -295,6 +320,8 @@ Limit direction +"""
                     self.__Inverted = False
             except Exception:
                 self.__Inverted = False
+
+            self.__Encoder = self.read_encoder_type()
             self.set_state(DevState.ON)
         else:
             self.set_state(DevState.OFF)
@@ -366,18 +393,53 @@ Limit direction +"""
         self.send_cmd("P23S{:f}".format(value))
 
     def read_position(self):
-        enc_type = self.read_encoder_type()
-        position_P = 20 if enc_type == EncoderType.none else 21
-        ret = float(self.send_cmd(f"P{position_P}R"))
+        param_pos = 20 if self.__Encoder == EncoderType.none else 21
+        ret = float(self.send_cmd(f"P{param_pos}R"))
         if self.__Inverted:
             return -1*ret
         else:
             return ret
-    
+
+    def read_pos_P19(self):
+        ret = float(self.send_cmd(f"P19R"))
+        if self.__Inverted:
+            return -1*ret
+        else:
+            return ret
+
+    def read_pos_P20(self):
+        ret = float(self.send_cmd(f"P20R"))
+        if self.__Inverted:
+            return -1*ret
+        else:
+            return ret
+
+    def read_pos_P21(self):
+        ret = float(self.send_cmd(f"P21R"))
+        if self.__Inverted:
+            return -1*ret
+        else:
+            return ret
+
     def write_position(self, value):
         if self.__Inverted:
             value = -1*value
-        answer = self.send_cmd("A{:.10f}".format(value))
+        if self.__Encoder == EncoderType.none:
+            answer = self.send_cmd("A{:.10f}".format(value))
+        elif self.__Encoder == EncoderType.incremental:
+            ### v1: free run with stop on encoder position (P21)
+            ### typo in manual? Doesn't seem to check P21, but P20 -> no good
+            # current_pos = self.read_position()
+            # ax = self.__Axis_Name
+            # mv, comp = '+>' if current_pos < value else '-<'
+            # answer = self._send_cmd(f"{ax}L{mv} {ax}{comp}{value} {ax}S")
+
+            ### v2: relative move -> better
+            delta = value - self.read_position()
+            answer = self.send_cmd(f"{delta:+.10f}")
+        else:  # absolute encoder, TODO: decide what to do
+            answer = self.send_cmd("A{:.10f}".format(value))
+
         if answer != self.__NACK:
             self.set_state(DevState.MOVING)
 
@@ -471,21 +533,23 @@ Limit direction +"""
 
     def read_encoder_type(self):
         return EncoderType(int(self.send_cmd("P34R")))
-    
+
     def write_encoder_type(self, value):
-        self.send_cmd(f"P34S{value:d}")
+        ans = self.send_cmd(f"P34S{value:d}")
+        if ans != self.__NACK:
+            self.__Encoder = EncoderType(value)
 
     def read_encoder_resolution(self):
         return int(self.send_cmd("P35R"))
-    
+
     def write_encoder_resolution(self, value):
         self.send_cmd(f"P35S{value:d}")
-    
+
     def read_encoder_conversion(self):
-        return float(self.send_cmd("P39R"))
-    
+        return 1 / float(self.send_cmd("P39R"))
+
     def write_encoder_conversion(self, value):
-        self.send_cmd(f"P39S{value}")
+        self.send_cmd(f"P39S{1 / value}")
 
     def read_movement_unit(self):
         res = int(self.send_cmd("P02R"))
@@ -524,7 +588,6 @@ Limit direction +"""
             self.set_state(DevState.FAULT)
             self.warn_stream("command not acknowledged from controller "
                              "-> Fault State")
-            return ""
         return res
 
     # commands
@@ -543,6 +606,13 @@ Limit direction +"""
         if self.__Inverted:
             value = -1*value
         self.send_cmd("P20S{:.4f}".format(value))
+        self.send_cmd("P21S{:.4f}".format(value))
+
+    # @command(dtype_in=float, doc_in="position")
+    # def set_encoder_position(self, value):
+    #     if self.__Inverted:
+    #         value = -value
+    #     self.send_cmd(f"P21S{value:.4f}")
 
     @command
     def jog_plus(self):
@@ -562,18 +632,16 @@ Limit direction +"""
 
     @command
     def homing_plus(self):
-        if self.__Inverted:
-            self.send_cmd("0-")
-        else:
-            self.send_cmd("0+")
+        flag_dir = '-' if self.__Inverted else '+'
+        flag_enc = '^I' if self.__Encoder == EncoderType.incremental else ''
+        self.send_cmd(f"0{flag_dir}{flag_enc}")
         self.set_state(DevState.MOVING)
 
     @command
     def homing_minus(self):
-        if self.__Inverted:
-            self.send_cmd("0+")
-        else:
-            self.send_cmd("0-")
+        flag_dir = '+' if self.__Inverted else '-'
+        flag_enc = '^I' if self.__Encoder == EncoderType.incremental else ''
+        self.send_cmd(f"0{flag_dir}{flag_enc}")
         self.set_state(DevState.MOVING)
 
     @command
