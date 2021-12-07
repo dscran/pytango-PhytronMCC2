@@ -92,15 +92,6 @@ class PhytronMCC2Axis(Device):
         display_level=DispLevel.OPERATOR,
     )
 
-    encoder_position = attribute(
-        dtype="float",
-        format="%8.3f",
-        label="encoder position",
-        unit="",
-        access=AttrWriteType.READ,
-        display_level=DispLevel.OPERATOR,
-    )
-
     alias = attribute(
         dtype="string",
         label="alias",
@@ -247,6 +238,14 @@ Limit direction +"""
         doc="absolute (SSI) encoder resolution in bit (max. 31)"
     )
 
+    encoder_conversion = attribute(
+        dtype="float",
+        format="%10.1f",
+        label="movement unit per encoder increment",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+    )
+
     # private class properties
     __NACK = chr(0x15)     # command failed
     __LIM_PLUS = 2
@@ -367,7 +366,9 @@ Limit direction +"""
         self.send_cmd("P23S{:f}".format(value))
 
     def read_position(self):
-        ret = float(self.send_cmd("P20R"))
+        enc_type = self.read_encoder_type()
+        position_P = 20 if enc_type == EncoderType.none else 21
+        ret = float(self.send_cmd(f"P{position_P}R"))
         if self.__Inverted:
             return -1*ret
         else:
@@ -380,13 +381,6 @@ Limit direction +"""
         if answer != self.__NACK:
             self.set_state(DevState.MOVING)
 
-    def read_encoder_position(self):
-        ret = float(self.send_cmd("P22R"))
-        if self.__Inverted:
-            return -1 * ret
-        else:
-            return ret
-    
     def read_alias(self):
         return self.Alias
 
@@ -486,6 +480,12 @@ Limit direction +"""
     
     def write_encoder_resolution(self, value):
         self.send_cmd(f"P35S{value:d}")
+    
+    def read_encoder_conversion(self):
+        return float(self.send_cmd("P39R"))
+    
+    def write_encoder_conversion(self, value):
+        self.send_cmd(f"P39S{value}")
 
     def read_movement_unit(self):
         res = int(self.send_cmd("P02R"))
