@@ -25,6 +25,13 @@ class InitiatorType(IntEnum):
     NOC = 1
 
 
+class EncoderType(IntEnum):
+    none = 0
+    incremental = 1
+    SSI_binary = 2
+    SSI_Gray = 3
+
+
 class PhytronMCC2Axis(Device):
     # device properties
     CtrlDevice = device_property(
@@ -82,6 +89,15 @@ class PhytronMCC2Axis(Device):
         label="position",
         unit="steps",
         access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.OPERATOR,
+    )
+
+    encoder_position = attribute(
+        dtype="float",
+        format="%8.3f",
+        label="encoder position",
+        unit="",
+        access=AttrWriteType.READ,
         display_level=DispLevel.OPERATOR,
     )
 
@@ -213,6 +229,24 @@ Limit direction +"""
         doc="Allowed unit values are step, mm, inch, degree"
     )
 
+    encoder_type = attribute(
+        dtype=EncoderType,
+        label="encoder type",
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+        doc="type of installed encoder"
+    )
+
+    encoder_resolution = attribute(
+        dtype="int",
+        label="encoder resolution",
+        unit="bit",
+        min_value=10, max_value=31,
+        access=AttrWriteType.READ_WRITE,
+        display_level=DispLevel.EXPERT,
+        doc="absolute (SSI) encoder resolution in bit (max. 31)"
+    )
+
     # private class properties
     __NACK = chr(0x15)     # command failed
     __LIM_PLUS = 2
@@ -338,7 +372,7 @@ Limit direction +"""
             return -1*ret
         else:
             return ret
-
+    
     def write_position(self, value):
         if self.__Inverted:
             value = -1*value
@@ -346,6 +380,13 @@ Limit direction +"""
         if answer != self.__NACK:
             self.set_state(DevState.MOVING)
 
+    def read_encoder_position(self):
+        ret = float(self.send_cmd("P22R"))
+        if self.__Inverted:
+            return -1 * ret
+        else:
+            return ret
+    
     def read_alias(self):
         return self.Alias
 
@@ -433,6 +474,12 @@ Limit direction +"""
 
     def write_type_of_movement(self, value):
         self.send_cmd("P01S{:d}".format(int(value)))
+
+    def read_encoder_type(self):
+        return EncoderType(int(self.send_cmd("P34R")))
+    
+    def write_encoder_type(self, value):
+        self.send_cmd(f"P34S{value:d}")
 
     def read_movement_unit(self):
         res = int(self.send_cmd("P02R"))
