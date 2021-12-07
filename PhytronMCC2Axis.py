@@ -481,6 +481,12 @@ Limit direction +"""
     def write_encoder_type(self, value):
         self.send_cmd(f"P34S{value:d}")
 
+    def read_encoder_resolution(self):
+        return EncoderType(int(self.send_cmd("P35R")))
+    
+    def write_encoder_type(self, value):
+        self.send_cmd(f"P35S{value:d}")
+
     def read_movement_unit(self):
         res = int(self.send_cmd("P02R"))
         if res == 1:
